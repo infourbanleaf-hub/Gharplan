@@ -5,8 +5,8 @@ project at the repo root. Engine, renderer and UI share one codebase.
 
 - Step 1: layout engine (`engine/`) and acceptance tests
 - Step 2: plan renderer (`render/`)
-- Step 3: input wizard, results and plan viewer (`App.tsx`, `ui/`). Furniture, editing and
-  export come later.
+- Step 3: input wizard, results and plan viewer (`App.tsx`, `ui/`)
+- Step 4: furniture auto-placement (`engine/furniture.ts`). Editing and export come later.
 
 ## Layout
 
@@ -46,6 +46,27 @@ previews/        generated plan images
 - Common toilet is reachable without passing through a bedroom; attached toilets open
   from their own bedroom only.
 
+## Furniture
+
+`engine/furniture.ts` places the brief's furniture library in each selected layout, after the
+rooms and openings are fixed. Rules:
+
+- Nothing sits in a door swing or a window's 2 ft clearance; a door keeps its full width clear
+  on both sides.
+- Beds and wardrobes keep 2'-6" clear on the sides that are not against the wall.
+- Beds are against a wall, headboard on the wall, preferring S or W when Vastu applies.
+- The TV unit goes on the wall opposite the sofa.
+- Tables may sit free in the room; beds and wardrobes stay against walls.
+- Items that cannot be placed are reported as "no room for ..." and counted. Layouts with fewer
+  missing items rank higher among close candidates.
+
+Sizes marked `assumed` in the library (WC, basin, shower, mandir, side table, centre table,
+bookshelf, washing machine) are not in the brief. They are drawn dashed on the plan.
+
+Current fit on the acceptance cases: about two-thirds of the required items are placed. The
+rest are usually beds or wardrobes in rooms where doors and windows take the walls. Putting
+furniture fit into the layout search itself is the next improvement.
+
 ## Soft scores (ranked, shown on the scorecard)
 
 Room size, cross-ventilation, circulation (passages under 12% of built-up), kitchen next to
@@ -76,6 +97,7 @@ improvement if testers need strict compliance.
 - Attached toilets default on for the master bedroom only.
 - Minimum sizes not stated in the brief (common toilet, study, store, utility, staircase)
   are marked `minSource: assumed` in `config/room-defaults.json`.
+- Furniture sizes not in the brief are marked assumed in `engine/furniture.ts`.
 - Balcony and external staircase are not placed yet and are reported as warnings.
 - First floor is not generated; the staircase is reserved on the ground floor.
 - Parking is placed at one end of the front setback, car long side along the frontage.

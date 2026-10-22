@@ -11,8 +11,9 @@ import { ChipGroup } from './components';
 export function ViewerScreen({ layout, unit, onUnit }: { layout: Layout; unit: Unit; onUnit: (u: Unit) => void }) {
   const [showSetbacks, setShowSetbacks] = useState(true);
   const [showDimensions, setShowDimensions] = useState(true);
+  const [showFurniture, setShowFurniture] = useState(true);
   const [resetKey, setResetKey] = useState(0);
-  const options = useMemo(() => ({ unit, showSetbacks, showDimensions }), [unit, showSetbacks, showDimensions]);
+  const options = useMemo(() => ({ unit, showSetbacks, showDimensions, showFurniture }), [unit, showSetbacks, showDimensions, showFurniture]);
   const s = layout.scorecard;
   return (
     <View style={styles.screen}>
@@ -28,8 +29,8 @@ export function ViewerScreen({ layout, unit, onUnit }: { layout: Layout; unit: U
         />
         <ToggleRow label={t.viewer.setbacks} value={showSetbacks} onChange={setShowSetbacks} />
         <ToggleRow label={t.viewer.dimensions} value={showDimensions} onChange={setShowDimensions} />
-        <ToggleRow label={t.viewer.furniture} value={false} disabled onChange={() => undefined} />
-        <Hint>{t.viewer.furnitureSoon}</Hint>
+        <ToggleRow label={t.viewer.furniture} value={showFurniture} onChange={setShowFurniture} />
+        <Hint>{t.viewer.furnitureNote}</Hint>
         <Button label={t.viewer.reset} kind="ghost" onPress={() => setResetKey((k) => k + 1)} />
 
         <Title>{t.viewer.scorecard}</Title>

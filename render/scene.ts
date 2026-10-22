@@ -12,7 +12,7 @@ export type Item =
   | { kind: 'polyline'; points: Pt[]; stroke: string; strokeWidth: number; dash?: string; layer: Layer }
   | { kind: 'text'; x: number; y: number; text: string; size: number; fill: string; anchor: 'start' | 'middle' | 'end'; weight?: 'normal' | 'bold'; layer: Layer };
 
-export type Layer = 'plot' | 'rooms' | 'parking' | 'walls' | 'openings' | 'labels' | 'dimensions' | 'north';
+export type Layer = 'plot' | 'rooms' | 'parking' | 'furniture' | 'walls' | 'openings' | 'labels' | 'dimensions' | 'north';
 
 export interface Scene {
   width: number;
@@ -24,6 +24,7 @@ export interface PlanOptions {
   unit: Unit;
   showSetbacks: boolean;
   showDimensions: boolean;
+  showFurniture: boolean;
   /** Drawing units per foot. The SVG scales to fit its container, so this only sets proportions. */
   scale: number;
 }
@@ -32,6 +33,7 @@ export const DEFAULT_PLAN_OPTIONS: PlanOptions = {
   unit: 'ftin',
   showSetbacks: true,
   showDimensions: true,
+  showFurniture: true,
   scale: 12,
 };
 
@@ -47,6 +49,7 @@ export const COLORS = {
   dimension: '#1f4e8c',
   text: '#1d2026',
   parking: '#777c85',
+  furniture: '#7d838c',
   parkingFill: '#eceef1',
 };
 
@@ -148,17 +151,28 @@ export function planScene(layout: Layout, opts: Partial<PlanOptions> = {}): Scen
     text(c, p.kind === 'car' ? 'Car' : '2W', 9, COLORS.text, 'parking');
   }
 
-  // 4. Walls, drawn as thick strips so they have real thickness
+  // 4. Furniture: thin grey outlines. Assumed sizes are dashed so they can be checked.
+  if (o.showFurniture) {
+    for (const f of layout.furniture) {
+      poly(rectPoints(f.rect), 'none', 'furniture', {
+        stroke: COLORS.furniture,
+        strokeWidth: 0.9,
+        dash: f.assumed ? '2 2' : undefined,
+      });
+    }
+  }
+
+  // 5. Walls, drawn as thick strips so they have real thickness
   for (const r of layout.rooms) {
     for (const w of roomWalls(r)) {
       poly(wallStrip(w.side, r.rect, w.t), COLORS.wall, 'walls');
     }
   }
 
-  // 5. Openings: gap in the wall, then the door leaf and swing arc, or window glazing lines
+  // 6. Openings: gap in the wall, then the door leaf and swing arc, or window glazing lines
   for (const op of layout.openings) drawOpening(op, layout, local, items);
 
-  // 6. Room labels and dimensions
+  // 7. Room labels and dimensions
   for (const r of layout.rooms) {
     if (r.kind === 'passage') continue;
     const c = { x: r.rect.x + r.rect.w / 2, y: r.rect.y + r.rect.h / 2 };
@@ -172,7 +186,7 @@ export function planScene(layout: Layout, opts: Partial<PlanOptions> = {}): Scen
     }
   }
 
-  // 7. Plot dimensions along the road and the side
+  // 8. Plot dimensions along the road and the side
   if (o.showDimensions) {
     const d = 3.2; // feet outside the plot
     line([{ x: 0, y: -d }, { x: frame.width, y: -d }], COLORS.dimension, 1, 'dimensions');
@@ -181,7 +195,7 @@ export function planScene(layout: Layout, opts: Partial<PlanOptions> = {}): Scen
     text({ x: frame.width + d + 0.6, y: frame.depth / 2 }, ftin(frame.depth, o.unit), 10, COLORS.dimension, 'dimensions', 'start', 'bold');
   }
 
-  // 8. North arrow, always pointing to the top of the drawing
+  // 9. North arrow, always pointing to the top of the drawing
   const na = local({ x: frame.width + 9, y: frame.depth - 2 });
   const naBase = local({ x: frame.width + 9, y: frame.depth - 7 });
   items.push({ kind: 'polyline', points: [naBase, na], stroke: '#000', strokeWidth: 2, layer: 'north' });

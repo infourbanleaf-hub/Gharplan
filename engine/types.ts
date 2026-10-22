@@ -146,6 +146,18 @@ export interface Scorecard {
   total: number;
 }
 
+export interface FurnitureItem {
+  id: string;
+  roomId: string;
+  kind: string;
+  label: string;
+  rect: Rect;
+  /** Area that must stay clear for use (e.g. in front of a wardrobe). */
+  clearance: Rect | null;
+  /** True when the size is not in the brief and should be checked. */
+  assumed: boolean;
+}
+
 export interface Layout {
   id: string;
   seed: number;
@@ -153,6 +165,9 @@ export interface Layout {
   rooms: PlacedRoom[];
   openings: Opening[];
   parking: ParkingSlot[];
+  furniture: FurnitureItem[];
+  /** Required furniture items that did not fit. */
+  missingFurniture: number;
   scorecard: Scorecard;
   vastuRules: { roomId: string; rule: string; score: number }[];
   warnings: string[];

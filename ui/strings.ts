@@ -89,7 +89,7 @@ export const en = {
   viewer: {
     title: 'Plan',
     furniture: 'Furniture',
-    furnitureSoon: 'Furniture comes in the next step',
+    furnitureNote: 'Dashed outlines are assumed sizes to check against your own furniture.',
     setbacks: 'Setbacks',
     dimensions: 'Dimensions',
     unit: 'Units',

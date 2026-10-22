@@ -10,6 +10,15 @@
 <polygon points="273.75,209.25 273.75,88.50 148.50,88.50 148.50,209.25" fill="#dfeefa" data-layer="rooms"/>
 <polygon points="564.00,300.00 564.00,84.00 456.00,84.00 456.00,300.00" fill="#eceef1" stroke="#777c85" stroke-width="1" data-layer="parking"/>
 <text x="510.00" y="192.00" font-size="9" fill="#1d2026" text-anchor="middle" font-family="Roboto, Arial, sans-serif" data-layer="parking">Car</text>
+<polygon points="274.50,316.50 274.50,244.50 196.50,244.50 196.50,316.50" fill="none" stroke="#7d838c" stroke-width="0.9" data-layer="furniture"/>
+<polygon points="172.50,364.50 172.50,346.50 154.50,346.50 154.50,364.50" fill="none" stroke="#7d838c" stroke-width="0.9" stroke-dasharray="2 2" data-layer="furniture"/>
+<polygon points="397.50,403.50 397.50,367.50 313.50,367.50 313.50,403.50" fill="none" stroke="#7d838c" stroke-width="0.9" data-layer="furniture"/>
+<polygon points="397.50,280.50 397.50,244.50 325.50,244.50 325.50,280.50" fill="none" stroke="#7d838c" stroke-width="0.9" data-layer="furniture"/>
+<polygon points="243.75,203.25 243.75,125.25 183.75,125.25 183.75,203.25" fill="none" stroke="#7d838c" stroke-width="0.9" data-layer="furniture"/>
+<polygon points="368.25,179.25 368.25,119.25 344.25,119.25 344.25,179.25" fill="none" stroke="#7d838c" stroke-width="0.9" data-layer="furniture"/>
+<polygon points="274.50,421.50 274.50,391.50 256.50,391.50 256.50,421.50" fill="none" stroke="#7d838c" stroke-width="0.9" stroke-dasharray="2 2" data-layer="furniture"/>
+<polygon points="196.50,433.50 196.50,415.50 172.50,415.50 172.50,433.50" fill="none" stroke="#7d838c" stroke-width="0.9" stroke-dasharray="2 2" data-layer="furniture"/>
+<polygon points="332.25,179.25 332.25,149.25 314.25,149.25 314.25,179.25" fill="none" stroke="#7d838c" stroke-width="0.9" stroke-dasharray="2 2" data-layer="furniture"/>
 <polygon points="444.00,444.00 444.00,312.00 435.00,312.00 435.00,444.00" fill="#3b3f45" data-layer="walls"/>
 <polygon points="282.75,441.75 282.75,314.25 278.25,314.25 278.25,441.75" fill="#3b3f45" data-layer="walls"/>
 <polygon points="444.00,444.00 444.00,435.00 276.00,435.00 276.00,444.00" fill="#3b3f45" data-layer="walls"/>

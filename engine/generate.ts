@@ -6,6 +6,7 @@ import { exteriorSides, sharedEdge, type SharedEdge } from './geometry';
 import { mulberry32, shuffle } from './rng';
 import { preferenceScore } from './vastu';
 import { parkingFor } from './parking';
+import { placeFurniture } from './furniture';
 import type {
   Frame, GenerationResult, Layout, Opening, ParkingSlot, PlacedRoom, PlotInput, Rect, RoomSpec, Side,
 } from './types';
@@ -18,6 +19,8 @@ const OPEN_KITCHEN_FT = roomDefaults.openKitchenWidthFt;
 const PASSAGE_PROBABILITY = 0.2;
 const MIN_SLICE_FT = 3;
 const MIN_DISTINCT = 0.35;
+const FURNITURE_SHORTLIST = 400;
+const MISSING_FURNITURE_COST = 4;
 
 export interface GenerateOptions {
   count?: number;
@@ -108,18 +111,25 @@ export function generatePlans(rawInput: PlotInput, opts: GenerateOptions = {}): 
   }
 
   valid.sort((a, b) => b.ev.total - a.ev.total);
-  const picked: typeof valid = [];
-  for (const v of valid) {
-    if (picked.length >= count) break;
-    if (picked.every((p) => difference(p.cand, v.cand) >= MIN_DISTINCT)) picked.push(v);
-  }
-  if (picked.length === 0) {
-    errors.push('No valid layout found for these inputs. Try relaxing Vastu to Moderate, or change room choices.');
-  } else if (picked.length < count) {
-    warnings.push(`Only ${picked.length} distinct valid layout${picked.length === 1 ? '' : 's'} found for these inputs.`);
-  }
 
-  const layouts: Layout[] = picked.map((p, i) => assembleLayout(`L${i + 1}`, p.seed, p.cand, p.ev, frame, input, program.rooms, warnings));
+  // Furniture fit decides between close candidates: missing items cost points.
+  const shortlist = valid.slice(0, FURNITURE_SHORTLIST).map((v, i) => {
+    const layout = assembleLayout(`L${i + 1}`, v.seed, v.cand, v.ev, frame, input, program.rooms, warnings);
+    const adjusted = v.ev.total - MISSING_FURNITURE_COST * layout.missingFurniture;
+    return { layout, cand: v.cand, adjusted };
+  });
+  shortlist.sort((a, b) => b.adjusted - a.adjusted);
+  const chosen: typeof shortlist = [];
+  for (const v of shortlist) {
+    if (chosen.length >= count) break;
+    if (chosen.every((p) => difference(p.cand, v.cand) >= MIN_DISTINCT)) chosen.push(v);
+  }
+  if (chosen.length === 0) {
+    errors.push('No valid layout found for these inputs. Try relaxing Vastu to Moderate, or change room choices.');
+  } else if (chosen.length < count) {
+    warnings.push(`Only ${chosen.length} distinct valid layout${chosen.length === 1 ? '' : 's'} found for these inputs.`);
+  }
+  const layouts: Layout[] = chosen.map((c, i) => ({ ...c.layout, id: `L${i + 1}` }));
   return { layouts, errors, warnings: unique(warnings), stats: { sampled, valid: valid.length } };
 }
 
@@ -473,6 +483,8 @@ function assembleLayout(
   }
 
   if (input.vastu !== 'none') layoutWarnings.push(...ev.vastuFlags);
+  const furniture = placeFurniture(rooms, openings, frame, input);
+  layoutWarnings.push(...furniture.warnings);
   return {
     id,
     seed,
@@ -480,6 +492,8 @@ function assembleLayout(
     rooms,
     openings,
     parking,
+    furniture: furniture.items,
+    missingFurniture: furniture.missing,
     scorecard: ev.scorecard,
     vastuRules: ev.vastuRules,
     warnings: unique(layoutWarnings),
