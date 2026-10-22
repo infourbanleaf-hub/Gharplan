@@ -1,0 +1,17 @@
+{
+  "name": "gharplan",
+  "version": "0.1.0",
+  "private": true,
+  "description": "GharPlan - rule-based house layout engine (trial MVP)",
+  "type": "module",
+  "scripts": {
+    "test": "vitest run",
+    "preview": "tsx scripts/preview-svg.ts"
+  },
+  "devDependencies": {
+    "@types/node": "^22.20.5",
+    "tsx": "^4.23.15",
+    "typescript": "^5.9.3",
+    "vitest": "^2.1.9"
+  }
+}
