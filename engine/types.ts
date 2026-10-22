@@ -58,8 +58,17 @@ export interface PlotInput {
     commonToilet: boolean;
   };
   elderlyGroundBedroom: boolean;
+  /** Optional per-room size overrides in feet. Anything omitted uses the defaults in config. */
+  roomSizes?: Partial<Record<RoomKind, RoomSizeOverride>>;
   vastu: VastuMode;
   priority: Priority;
+}
+
+export interface RoomSizeOverride {
+  defW?: number;
+  defH?: number;
+  minW?: number;
+  minH?: number;
 }
 
 /** Derived geometry for one plot + setback combination. All in local feet. */

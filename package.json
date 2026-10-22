@@ -2,16 +2,37 @@
   "name": "gharplan",
   "version": "0.1.0",
   "private": true,
-  "description": "GharPlan - rule-based house layout engine (trial MVP)",
+  "description": "GharPlan - AI house layout generator for India (trial MVP)",
   "type": "module",
   "scripts": {
     "test": "vitest run",
-    "preview": "tsx scripts/preview-svg.ts"
+    "start": "expo start",
+    "android": "expo start --android",
+    "web": "expo start --web",
+    "export:web": "expo export --platform web",
+    "preview": "tsx scripts/render-svg.ts 0 previews"
   },
   "devDependencies": {
     "@types/node": "^22.20.5",
+    "@types/react": "~18.3.12",
     "tsx": "^4.23.15",
     "typescript": "^5.9.3",
     "vitest": "^2.1.9"
-  }
+  },
+  "dependencies": {
+    "@expo/metro-runtime": "~4.0.0",
+    "@react-native-async-storage/async-storage": "^1.23.1",
+    "expo": "~52.0.0",
+    "expo-asset": "~11.0.5",
+    "expo-constants": "~17.0.8",
+    "expo-font": "~13.0.4",
+    "expo-linking": "~7.0.5",
+    "expo-status-bar": "~2.0.0",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "react-native": "^0.76.5",
+    "react-native-svg": "^15.8.0",
+    "react-native-web": "^0.19.13"
+  },
+  "main": "index.ts"
 }

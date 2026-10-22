@@ -14,16 +14,17 @@ interface RoomConfig {
 
 const ROOMS = roomDefaults.rooms as Record<string, RoomConfig>;
 
-function spec(id: string, kind: RoomKind, attachedTo?: string): RoomSpec {
+function spec(id: string, kind: RoomKind, overrides: PlotInput['roomSizes'], attachedTo?: string): RoomSpec {
   const c = ROOMS[kind];
+  const o = overrides?.[kind] ?? {};
   return {
     id,
     kind,
     label: c.label,
-    minW: c.minW,
-    minH: c.minH,
-    defW: c.defW,
-    defH: c.defH,
+    minW: o.minW ?? c.minW,
+    minH: o.minH ?? c.minH,
+    defW: o.defW ?? c.defW,
+    defH: o.defH ?? c.defH,
     doorWidth: c.doorWidth,
     habitable: c.habitable,
     attachedTo,
@@ -43,26 +44,26 @@ export function buildProgram(input: PlotInput): Program {
   const warnings: string[] = [];
   const rooms: RoomSpec[] = [];
 
-  rooms.push(spec('living', 'living'));
-  if (input.rooms.dining) rooms.push(spec('dining', 'dining'));
-  rooms.push(spec('kitchen', 'kitchen'));
+  rooms.push(spec('living', 'living', input.roomSizes));
+  if (input.rooms.dining) rooms.push(spec('dining', 'dining', input.roomSizes));
+  rooms.push(spec('kitchen', 'kitchen', input.roomSizes));
 
   const bedroomCount = input.bhk;
   for (let i = 0; i < bedroomCount; i++) {
     const isMaster = i === 0;
     const id = isMaster ? 'master' : `bed${i + 1}`;
-    rooms.push(spec(id, isMaster ? 'master' : 'bedroom'));
+    rooms.push(spec(id, isMaster ? 'master' : 'bedroom', input.roomSizes));
     if (input.attachedToilets[i]) {
-      rooms.push(spec(`toilet-${id}`, 'attachedToilet', id));
+      rooms.push(spec(`toilet-${id}`, 'attachedToilet', input.roomSizes, id));
     }
   }
-  if (input.rooms.guestBedroom) rooms.push(spec('guest', 'guest'));
-  if (input.rooms.commonToilet) rooms.push(spec('toilet-common', 'commonToilet'));
-  if (input.rooms.puja) rooms.push(spec('puja', 'puja'));
-  if (input.rooms.study) rooms.push(spec('study', 'study'));
-  if (input.rooms.store) rooms.push(spec('store', 'store'));
-  if (input.rooms.utility) rooms.push(spec('utility', 'utility'));
-  if (input.floors === 2 && input.staircase === 'internal') rooms.push(spec('stair', 'stair'));
+  if (input.rooms.guestBedroom) rooms.push(spec('guest', 'guest', input.roomSizes));
+  if (input.rooms.commonToilet) rooms.push(spec('toilet-common', 'commonToilet', input.roomSizes));
+  if (input.rooms.puja) rooms.push(spec('puja', 'puja', input.roomSizes));
+  if (input.rooms.study) rooms.push(spec('study', 'study', input.roomSizes));
+  if (input.rooms.store) rooms.push(spec('store', 'store', input.roomSizes));
+  if (input.rooms.utility) rooms.push(spec('utility', 'utility', input.roomSizes));
+  if (input.floors === 2 && input.staircase === 'internal') rooms.push(spec('stair', 'stair', input.roomSizes));
 
   if (input.floors === 2 && input.staircase === 'external') {
     warnings.push('External staircase is not placed in the MVP; it is reserved for a future rental unit.');

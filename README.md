@@ -1,8 +1,12 @@
-# GharPlan engine (step 1)
+# GharPlan
 
-Rule-based house layout engine for the GharPlan trial. This step covers the data model,
-the generation engine and its acceptance tests. The renderer, input wizard, furniture and
-export come in later steps.
+Rule-based house layout generator for the GharPlan trial. The app is an Expo (React Native)
+project at the repo root. Engine, renderer and UI share one codebase.
+
+- Step 1: layout engine (`engine/`) and acceptance tests
+- Step 2: plan renderer (`render/`)
+- Step 3: input wizard, results and plan viewer (`App.tsx`, `ui/`). Furniture, editing and
+  export come later.
 
 ## Layout
 
@@ -80,7 +84,12 @@ improvement if testers need strict compliance.
 
 ```
 npm install
-npm test                                  # units, setbacks, acceptance cases
-npx tsx scripts/dump-layouts.ts 0 out.json  # dump the generated layouts for case 1
-python3 scripts/draw_plan.py out.json out.png
+npm test                                    # engine, renderer and acceptance cases
+npm run web                                 # app in the browser (phone-width layout)
+npm run android                             # app on an Android device or emulator (Expo Go)
+npm run export:web                          # static web build in dist/
+npx tsx scripts/render-svg.ts 0 previews    # SVG plans for acceptance case 1
 ```
+
+The app has no login. Saved plans live in AsyncStorage on the device. The layout search takes
+several seconds, so the app shows a loading screen while it runs.

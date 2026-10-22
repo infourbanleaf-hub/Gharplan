@@ -8,7 +8,21 @@
     "noUncheckedIndexedAccess": false,
     "skipLibCheck": true,
     "noEmit": true,
-    "isolatedModules": true
+    "isolatedModules": true,
+    "jsx": "react-native",
+    "lib": [
+      "ES2020",
+      "DOM"
+    ]
   },
-  "include": ["engine", "config", "render", "tests", "scripts"]
+  "include": [
+    "engine",
+    "config",
+    "render",
+    "ui",
+    "tests",
+    "scripts",
+    "App.tsx",
+    "index.ts"
+  ]
 }
