@@ -63,9 +63,11 @@ rooms and openings are fixed. Rules:
 Sizes marked `assumed` in the library (WC, basin, shower, mandir, side table, centre table,
 bookshelf, washing machine) are not in the brief. They are drawn dashed on the plan.
 
-Current fit on the acceptance cases: about two-thirds of the required items are placed. The
-rest are usually beds or wardrobes in rooms where doors and windows take the walls. Putting
-furniture fit into the layout search itself is the next improvement.
+Fit on the acceptance cases: about three-quarters of the required items are placed, up from
+about two-thirds before the door-shift step. Doors between rooms slide along their shared wall
+to free up furniture space, and the best shift is kept for each layout shown. The most common
+miss is a wardrobe in a small bedroom, where a door or window and the 2'-6" clearance take the
+wall. Furniture fit is part of the final ranking, not yet of the search itself.
 
 ## Soft scores (ranked, shown on the scorecard)
 

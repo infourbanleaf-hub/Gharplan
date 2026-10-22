@@ -19,8 +19,8 @@ const OPEN_KITCHEN_FT = roomDefaults.openKitchenWidthFt;
 const PASSAGE_PROBABILITY = 0.2;
 const MIN_SLICE_FT = 3;
 const MIN_DISTINCT = 0.35;
-const FURNITURE_SHORTLIST = 400;
-const MISSING_FURNITURE_COST = 4;
+const FURNITURE_SHORTLIST = 60;
+const MISSING_FURNITURE_COST = 6;
 
 export interface GenerateOptions {
   count?: number;
@@ -114,7 +114,8 @@ export function generatePlans(rawInput: PlotInput, opts: GenerateOptions = {}): 
 
   // Furniture fit decides between close candidates: missing items cost points.
   const shortlist = valid.slice(0, FURNITURE_SHORTLIST).map((v, i) => {
-    const layout = assembleLayout(`L${i + 1}`, v.seed, v.cand, v.ev, frame, input, program.rooms, warnings);
+    const build = (shifts: Map<string, number>) => assembleLayout(`L${i + 1}`, v.seed, v.cand, v.ev, frame, input, program.rooms, warnings, shifts);
+    const layout = fitDoors(build, [...v.ev.parent.keys()]);
     const adjusted = v.ev.total - MISSING_FURNITURE_COST * layout.missingFurniture;
     return { layout, cand: v.cand, adjusted };
   });
@@ -226,6 +227,29 @@ export function realize(node: TreeNode, rect: Rect, out: Leaf[], penaltyOf: Leaf
 
 function quantise(ft: number): number {
   return Math.round(ft * 16) / 16;
+}
+
+/**
+ * Slides internal doors toward either end of their shared wall, one at a time, and keeps each
+ * shift that leaves more furniture placed. Only runs on layouts that will be shown.
+ */
+function fitDoors(build: (shifts: Map<string, number>) => Layout, childIds: string[]): Layout {
+  let shifts = new Map<string, number>();
+  let best = build(shifts);
+  for (let pass = 0; pass < 2; pass++) {
+    for (const id of childIds) {
+      for (const k of [-1, 0, 1]) {
+        if ((shifts.get(id) ?? 0) === k) continue;
+        const trial = new Map(shifts).set(id, k);
+        const layout = build(trial);
+        if (layout.missingFurniture < best.missingFurniture) {
+          best = layout;
+          shifts = trial;
+        }
+      }
+    }
+  }
+  return best;
 }
 
 /** Strict Vastu: how far rooms fall short of the 0.6 preference, summed. Zero when not strict. */
@@ -405,6 +429,7 @@ function assembleLayout(
   input: PlotInput,
   specs: RoomSpec[],
   warnings: string[],
+  doorShifts: Map<string, number> = new Map(),
 ): Layout {
   const specById = new Map(specs.map((s) => [s.id, s]));
   const rooms = cand.rooms;
@@ -452,12 +477,17 @@ function assembleLayout(
     const width = Math.min(widthOf(child), widthOf(parent));
     const open = (child.kind === 'kitchen' && input.rooms.kitchenOpen) || (parent.kind === 'kitchen' && input.rooms.kitchenOpen);
     const w = open ? OPEN_KITCHEN_FT : width;
-    const mid = edge.axis === 'v' ? (edge.y1 + edge.y2) / 2 : (edge.x1 + edge.x2) / 2;
+    const lo = edge.axis === 'v' ? edge.y1 : edge.x1;
+    const hi = edge.axis === 'v' ? edge.y2 : edge.x2;
+    // Centred by default; a shift slides the door toward one end of the shared wall.
+    const mid = (lo + hi) / 2;
+    const slack = Math.max(0, (hi - lo - w) / 2 - 0.25);
+    const at = Math.min(hi - w / 2 - 0.25, Math.max(lo + w / 2 + 0.25, mid + (doorShifts.get(child.id) ?? 0) * slack));
     const seg = edgeSegment(edge);
     openings.push({
       kind: open ? 'opening' : 'door',
       width: w,
-      ...centredSegment(seg, mid, w),
+      ...centredSegment(seg, at, w),
       roomId: child.id,
       otherRoomId: parent.id,
     });
