@@ -7,3 +7,5 @@ export { evaluate } from './evaluate';
 export { formatLength, formatArea, parseFeetInches } from './units';
 export type { Unit } from './units';
 export { defaultInput, ACCEPTANCE_CASES } from './presets';
+export { applyRoomEdits, validateLayout, roomLimits } from './edit';
+export type { RoomEdit, RoomLimits, ValidationIssue } from './edit';

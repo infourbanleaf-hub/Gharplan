@@ -25,6 +25,10 @@ export interface PlanOptions {
   showSetbacks: boolean;
   showDimensions: boolean;
   showFurniture: boolean;
+  /** Room to outline in the accent colour (the one being edited). */
+  selectedRoomId?: string;
+  /** Rooms with validation issues, outlined in red. */
+  issueRoomIds?: string[];
   /** Drawing units per foot. The SVG scales to fit its container, so this only sets proportions. */
   scale: number;
 }
@@ -50,6 +54,8 @@ export const COLORS = {
   text: '#1d2026',
   parking: '#777c85',
   furniture: '#7d838c',
+  selected: '#d08a00',
+  issue: '#c0392b',
   parkingFill: '#eceef1',
 };
 
@@ -195,7 +201,13 @@ export function planScene(layout: Layout, opts: Partial<PlanOptions> = {}): Scen
     text({ x: frame.width + d + 0.6, y: frame.depth / 2 }, ftin(frame.depth, o.unit), 10, COLORS.dimension, 'dimensions', 'start', 'bold');
   }
 
-  // 9. North arrow, always pointing to the top of the drawing
+  // 9. Highlights for the room being edited and rooms with issues
+  for (const r of layout.rooms) {
+    if (r.id === o.selectedRoomId) poly(rectPoints(r.rect), 'none', 'labels', { stroke: COLORS.selected, strokeWidth: 3 });
+    if (o.issueRoomIds?.includes(r.id)) poly(rectPoints(r.rect), 'none', 'labels', { stroke: COLORS.issue, strokeWidth: 3, dash: '6 3' });
+  }
+
+  // 10. North arrow, always pointing to the top of the drawing
   const na = local({ x: frame.width + 9, y: frame.depth - 2 });
   const naBase = local({ x: frame.width + 9, y: frame.depth - 7 });
   items.push({ kind: 'polyline', points: [naBase, na], stroke: '#000', strokeWidth: 2, layer: 'north' });

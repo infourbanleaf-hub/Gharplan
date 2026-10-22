@@ -23,6 +23,7 @@ export default function App() {
   const [viewIndex, setViewIndex] = useState(0);
   const [saved, setSaved] = useState<SavedPlan[]>([]);
   const [savedFlag, setSavedFlag] = useState(false);
+  const [generation, setGeneration] = useState(0);
 
   useEffect(() => {
     loadPlans().then(setSaved);
@@ -31,6 +32,7 @@ export default function App() {
   const generate = (from: PlotInput) => {
     setInput(from);
     setSavedFlag(false);
+    setGeneration((g) => g + 1);
     setScreen('generating');
     // Yield once so the loading screen paints before the search starts.
     setTimeout(() => {
@@ -137,7 +139,7 @@ export default function App() {
           </Pressable>
           <Text style={styles.viewerTitle}>{t.results.layout(result.layouts[viewIndex].id.replace('L', ''))}</Text>
         </View>
-        <ViewerScreen layout={result.layouts[viewIndex]} unit={unit} onUnit={setUnit} />
+        <ViewerScreen key={`${generation}-${viewIndex}`} layout={result.layouts[viewIndex]} input={input} unit={unit} onUnit={setUnit} />
       </View>
     );
   } else {

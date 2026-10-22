@@ -6,7 +6,8 @@ project at the repo root. Engine, renderer and UI share one codebase.
 - Step 1: layout engine (`engine/`) and acceptance tests
 - Step 2: plan renderer (`render/`)
 - Step 3: input wizard, results and plan viewer (`App.tsx`, `ui/`)
-- Step 4: furniture auto-placement (`engine/furniture.ts`). Editing and export come later.
+- Step 4: furniture auto-placement (`engine/furniture.ts`)
+- Step 5: basic room editing and re-validation (`engine/edit.ts`, `ui/Viewer.tsx`). Export comes later.
 
 ## Layout
 
@@ -45,6 +46,16 @@ previews/        generated plan images
 - Every room is reachable from the living room by a door.
 - Common toilet is reachable without passing through a bedroom; attached toilets open
   from their own bedroom only.
+
+## Room editing
+
+In the viewer, pick a room and change its width and height. A room keeps its top-left corner
+and is clamped to its minimum size and its default plus 2 ft. Nothing else moves. The layout is
+re-checked with the same rules as generation, plus the effects of the change: overlaps, doors
+that no longer sit on a shared wall, windows that lost their outer wall, and furniture that no
+longer fits. Each problem is listed in red and the room is outlined on the plan.
+
+Edits are not optimised: the app points out what to fix, and the user moves the rest.
 
 ## Furniture
 
