@@ -1,0 +1,126 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 648.00 528.00" width="100%" style="background:#ffffff">
+<polygon points="564.00,444.00 564.00,84.00 84.00,84.00 84.00,444.00" fill="none" stroke="#8a8f98" stroke-width="1" stroke-dasharray="6 4" data-layer="plot"/>
+<polygon points="444.00,444.00 444.00,84.00 144.00,84.00 144.00,444.00" fill="none" stroke="#c9584f" stroke-width="1" stroke-dasharray="4 3" data-layer="plot"/>
+<polygon points="439.50,439.50 439.50,295.50 280.50,295.50 280.50,439.50" fill="#fdf3d0" data-layer="rooms"/>
+<polygon points="280.50,439.50 280.50,295.50 148.50,295.50 148.50,439.50" fill="#d9e8fb" data-layer="rooms"/>
+<polygon points="439.50,295.50 439.50,210.75 319.50,210.75 319.50,295.50" fill="#e6f5d8" data-layer="rooms"/>
+<polygon points="439.50,210.75 439.50,88.50 319.50,88.50 319.50,210.75" fill="#dfeefa" data-layer="rooms"/>
+<polygon points="319.50,295.50 319.50,88.50 204.75,88.50 204.75,295.50" fill="#fde8d0" data-layer="rooms"/>
+<polygon points="204.75,295.50 204.75,195.75 148.50,195.75 148.50,295.50" fill="#e8e2f5" data-layer="rooms"/>
+<polygon points="204.75,195.75 204.75,88.50 148.50,88.50 148.50,195.75" fill="#e8e2f5" data-layer="rooms"/>
+<polygon points="564.00,300.00 564.00,84.00 456.00,84.00 456.00,300.00" fill="#eceef1" stroke="#777c85" stroke-width="1" data-layer="parking"/>
+<text x="510.00" y="192.00" font-size="9" fill="#1d2026" text-anchor="middle" font-family="Roboto, Arial, sans-serif" data-layer="parking">Car</text>
+<polygon points="444.00,444.00 444.00,291.00 435.00,291.00 435.00,444.00" fill="#3b3f45" data-layer="walls"/>
+<polygon points="282.75,441.75 282.75,293.25 278.25,293.25 278.25,441.75" fill="#3b3f45" data-layer="walls"/>
+<polygon points="444.00,444.00 444.00,435.00 276.00,435.00 276.00,444.00" fill="#3b3f45" data-layer="walls"/>
+<polygon points="441.75,297.75 441.75,293.25 278.25,293.25 278.25,297.75" fill="#3b3f45" data-layer="walls"/>
+<polygon points="282.75,441.75 282.75,293.25 278.25,293.25 278.25,441.75" fill="#3b3f45" data-layer="walls"/>
+<polygon points="153.00,444.00 153.00,291.00 144.00,291.00 144.00,444.00" fill="#3b3f45" data-layer="walls"/>
+<polygon points="285.00,444.00 285.00,435.00 144.00,435.00 144.00,444.00" fill="#3b3f45" data-layer="walls"/>
+<polygon points="282.75,297.75 282.75,293.25 146.25,293.25 146.25,297.75" fill="#3b3f45" data-layer="walls"/>
+<polygon points="444.00,300.00 444.00,206.25 435.00,206.25 435.00,300.00" fill="#3b3f45" data-layer="walls"/>
+<polygon points="321.75,297.75 321.75,208.50 317.25,208.50 317.25,297.75" fill="#3b3f45" data-layer="walls"/>
+<polygon points="441.75,297.75 441.75,293.25 317.25,293.25 317.25,297.75" fill="#3b3f45" data-layer="walls"/>
+<polygon points="441.75,213.00 441.75,208.50 317.25,208.50 317.25,213.00" fill="#3b3f45" data-layer="walls"/>
+<polygon points="444.00,215.25 444.00,84.00 435.00,84.00 435.00,215.25" fill="#3b3f45" data-layer="walls"/>
+<polygon points="321.75,213.00 321.75,86.25 317.25,86.25 317.25,213.00" fill="#3b3f45" data-layer="walls"/>
+<polygon points="441.75,213.00 441.75,208.50 317.25,208.50 317.25,213.00" fill="#3b3f45" data-layer="walls"/>
+<polygon points="444.00,93.00 444.00,84.00 315.00,84.00 315.00,93.00" fill="#3b3f45" data-layer="walls"/>
+<polygon points="321.75,297.75 321.75,86.25 317.25,86.25 317.25,297.75" fill="#3b3f45" data-layer="walls"/>
+<polygon points="207.00,297.75 207.00,86.25 202.50,86.25 202.50,297.75" fill="#3b3f45" data-layer="walls"/>
+<polygon points="321.75,297.75 321.75,293.25 202.50,293.25 202.50,297.75" fill="#3b3f45" data-layer="walls"/>
+<polygon points="324.00,93.00 324.00,84.00 200.25,84.00 200.25,93.00" fill="#3b3f45" data-layer="walls"/>
+<polygon points="207.00,297.75 207.00,193.50 202.50,193.50 202.50,297.75" fill="#3b3f45" data-layer="walls"/>
+<polygon points="153.00,300.00 153.00,191.25 144.00,191.25 144.00,300.00" fill="#3b3f45" data-layer="walls"/>
+<polygon points="207.00,297.75 207.00,293.25 146.25,293.25 146.25,297.75" fill="#3b3f45" data-layer="walls"/>
+<polygon points="207.00,198.00 207.00,193.50 146.25,193.50 146.25,198.00" fill="#3b3f45" data-layer="walls"/>
+<polygon points="207.00,198.00 207.00,86.25 202.50,86.25 202.50,198.00" fill="#3b3f45" data-layer="walls"/>
+<polygon points="153.00,200.25 153.00,84.00 144.00,84.00 144.00,200.25" fill="#3b3f45" data-layer="walls"/>
+<polygon points="207.00,198.00 207.00,193.50 146.25,193.50 146.25,198.00" fill="#3b3f45" data-layer="walls"/>
+<polygon points="209.25,93.00 209.25,84.00 144.00,84.00 144.00,93.00" fill="#3b3f45" data-layer="walls"/>
+<polygon points="435.00,396.75 435.00,354.75 444.00,354.75 444.00,396.75" fill="#ffffff" data-layer="openings"/>
+<polyline points="439.50,396.75 397.50,396.75" fill="none" stroke="#b3262e" stroke-width="1.4" stroke-linecap="round" data-layer="openings"/>
+<polyline points="439.50,354.75 435.84,354.91 432.21,355.39 428.63,356.18 425.14,357.28 421.75,358.69 418.50,360.38 415.41,362.35 412.50,364.58 409.80,367.05 407.33,369.75 405.10,372.66 403.13,375.75 401.44,379.00 400.03,382.39 398.93,385.88 398.14,389.46 397.66,393.09 397.50,396.75" fill="none" stroke="#b3262e" stroke-width="0.8" stroke-linecap="round" stroke-dasharray="3 2" data-layer="openings"/>
+<polygon points="278.25,385.50 278.25,349.50 282.75,349.50 282.75,385.50" fill="#ffffff" data-layer="openings"/>
+<polyline points="280.50,385.50 244.50,385.50" fill="none" stroke="#b3262e" stroke-width="1.4" stroke-linecap="round" data-layer="openings"/>
+<polyline points="280.50,349.50 277.36,349.64 274.25,350.05 271.18,350.73 268.19,351.67 265.29,352.87 262.50,354.32 259.85,356.01 257.36,357.92 255.04,360.04 252.92,362.36 251.01,364.85 249.32,367.50 247.87,370.29 246.67,373.19 245.73,376.18 245.05,379.25 244.64,382.36 244.50,385.50" fill="none" stroke="#b3262e" stroke-width="0.8" stroke-linecap="round" stroke-dasharray="3 2" data-layer="openings"/>
+<polygon points="394.50,297.75 364.50,297.75 364.50,293.25 394.50,293.25" fill="#ffffff" data-layer="openings"/>
+<polyline points="394.50,295.50 394.50,265.50" fill="none" stroke="#b3262e" stroke-width="1.4" stroke-linecap="round" data-layer="openings"/>
+<polyline points="364.50,295.50 364.61,292.89 364.96,290.29 365.52,287.74 366.31,285.24 367.31,282.82 368.52,280.50 369.93,278.29 371.52,276.22 373.29,274.29 375.22,272.52 377.29,270.93 379.50,269.52 381.82,268.31 384.24,267.31 386.74,266.52 389.29,265.96 391.89,265.61 394.50,265.50" fill="none" stroke="#b3262e" stroke-width="0.8" stroke-linecap="round" stroke-dasharray="3 2" data-layer="openings"/>
+<polygon points="394.50,213.00 364.50,213.00 364.50,208.50 394.50,208.50" fill="#ffffff" data-layer="openings"/>
+<polyline points="394.50,210.75 394.50,180.75" fill="none" stroke="#b3262e" stroke-width="1.4" stroke-linecap="round" data-layer="openings"/>
+<polyline points="364.50,210.75 364.61,208.14 364.96,205.54 365.52,202.99 366.31,200.49 367.31,198.07 368.52,195.75 369.93,193.54 371.52,191.47 373.29,189.54 375.22,187.77 377.29,186.18 379.50,184.77 381.82,183.56 384.24,182.56 386.74,181.77 389.29,181.21 391.89,180.86 394.50,180.75" fill="none" stroke="#b3262e" stroke-width="0.8" stroke-linecap="round" stroke-dasharray="3 2" data-layer="openings"/>
+<polygon points="317.25,268.13 317.25,238.13 321.75,238.13 321.75,268.13" fill="#ffffff" data-layer="openings"/>
+<polyline points="319.50,268.13 289.50,268.13" fill="none" stroke="#b3262e" stroke-width="1.4" stroke-linecap="round" data-layer="openings"/>
+<polyline points="319.50,238.13 316.89,238.24 314.29,238.58 311.74,239.15 309.24,239.93 306.82,240.94 304.50,242.14 302.29,243.55 300.22,245.14 298.29,246.91 296.52,248.84 294.93,250.92 293.52,253.13 292.31,255.45 291.31,257.86 290.52,260.36 289.96,262.92 289.61,265.51 289.50,268.13" fill="none" stroke="#b3262e" stroke-width="0.8" stroke-linecap="round" stroke-dasharray="3 2" data-layer="openings"/>
+<polygon points="202.50,157.13 202.50,127.13 207.00,127.13 207.00,157.13" fill="#ffffff" data-layer="openings"/>
+<polyline points="204.75,157.13 174.75,157.13" fill="none" stroke="#b3262e" stroke-width="1.4" stroke-linecap="round" data-layer="openings"/>
+<polyline points="204.75,127.13 202.14,127.24 199.54,127.58 196.99,128.15 194.49,128.93 192.07,129.94 189.75,131.14 187.54,132.55 185.47,134.14 183.54,135.91 181.77,137.84 180.18,139.92 178.77,142.13 177.56,144.45 176.56,146.86 175.77,149.36 175.21,151.92 174.86,154.51 174.75,157.13" fill="none" stroke="#b3262e" stroke-width="0.8" stroke-linecap="round" stroke-dasharray="3 2" data-layer="openings"/>
+<polygon points="191.63,297.75 161.63,297.75 161.63,293.25 191.63,293.25" fill="#ffffff" data-layer="openings"/>
+<polyline points="191.63,295.50 191.63,265.50" fill="none" stroke="#b3262e" stroke-width="1.4" stroke-linecap="round" data-layer="openings"/>
+<polyline points="161.63,295.50 161.74,292.89 162.08,290.29 162.65,287.74 163.43,285.24 164.44,282.82 165.64,280.50 167.05,278.29 168.64,276.22 170.41,274.29 172.34,272.52 174.42,270.93 176.63,269.52 178.95,268.31 181.36,267.31 183.86,266.52 186.42,265.96 189.01,265.61 191.63,265.50" fill="none" stroke="#b3262e" stroke-width="0.8" stroke-linecap="round" stroke-dasharray="3 2" data-layer="openings"/>
+<polygon points="384.00,444.00 336.00,444.00 336.00,435.00 384.00,435.00" fill="#ffffff" data-layer="openings"/>
+<polyline points="384.00,436.53 336.00,436.53" fill="none" stroke="#3f7fc4" stroke-width="1.2" stroke-linecap="round" data-layer="openings"/>
+<polyline points="384.00,439.50 336.00,439.50" fill="none" stroke="#3f7fc4" stroke-width="1.2" stroke-linecap="round" data-layer="openings"/>
+<polyline points="384.00,442.47 336.00,442.47" fill="none" stroke="#3f7fc4" stroke-width="1.2" stroke-linecap="round" data-layer="openings"/>
+<polygon points="144.00,391.50 144.00,343.50 153.00,343.50 153.00,391.50" fill="#ffffff" data-layer="openings"/>
+<polyline points="151.47,391.50 151.47,343.50" fill="none" stroke="#3f7fc4" stroke-width="1.2" stroke-linecap="round" data-layer="openings"/>
+<polyline points="148.50,391.50 148.50,343.50" fill="none" stroke="#3f7fc4" stroke-width="1.2" stroke-linecap="round" data-layer="openings"/>
+<polyline points="145.53,391.50 145.53,343.50" fill="none" stroke="#3f7fc4" stroke-width="1.2" stroke-linecap="round" data-layer="openings"/>
+<polygon points="238.50,444.00 190.50,444.00 190.50,435.00 238.50,435.00" fill="#ffffff" data-layer="openings"/>
+<polyline points="238.50,436.53 190.50,436.53" fill="none" stroke="#3f7fc4" stroke-width="1.2" stroke-linecap="round" data-layer="openings"/>
+<polyline points="238.50,439.50 190.50,439.50" fill="none" stroke="#3f7fc4" stroke-width="1.2" stroke-linecap="round" data-layer="openings"/>
+<polyline points="238.50,442.47 190.50,442.47" fill="none" stroke="#3f7fc4" stroke-width="1.2" stroke-linecap="round" data-layer="openings"/>
+<polygon points="435.00,277.13 435.00,229.13 444.00,229.13 444.00,277.13" fill="#ffffff" data-layer="openings"/>
+<polyline points="442.47,277.13 442.47,229.13" fill="none" stroke="#3f7fc4" stroke-width="1.2" stroke-linecap="round" data-layer="openings"/>
+<polyline points="439.50,277.13 439.50,229.13" fill="none" stroke="#3f7fc4" stroke-width="1.2" stroke-linecap="round" data-layer="openings"/>
+<polyline points="436.53,277.13 436.53,229.13" fill="none" stroke="#3f7fc4" stroke-width="1.2" stroke-linecap="round" data-layer="openings"/>
+<polygon points="435.00,173.63 435.00,125.63 444.00,125.63 444.00,173.63" fill="#ffffff" data-layer="openings"/>
+<polyline points="442.47,173.63 442.47,125.63" fill="none" stroke="#3f7fc4" stroke-width="1.2" stroke-linecap="round" data-layer="openings"/>
+<polyline points="439.50,173.63 439.50,125.63" fill="none" stroke="#3f7fc4" stroke-width="1.2" stroke-linecap="round" data-layer="openings"/>
+<polyline points="436.53,173.63 436.53,125.63" fill="none" stroke="#3f7fc4" stroke-width="1.2" stroke-linecap="round" data-layer="openings"/>
+<polygon points="403.50,93.00 355.50,93.00 355.50,84.00 403.50,84.00" fill="#ffffff" data-layer="openings"/>
+<polyline points="403.50,85.53 355.50,85.53" fill="none" stroke="#3f7fc4" stroke-width="1.2" stroke-linecap="round" data-layer="openings"/>
+<polyline points="403.50,88.50 355.50,88.50" fill="none" stroke="#3f7fc4" stroke-width="1.2" stroke-linecap="round" data-layer="openings"/>
+<polyline points="403.50,91.47 355.50,91.47" fill="none" stroke="#3f7fc4" stroke-width="1.2" stroke-linecap="round" data-layer="openings"/>
+<polygon points="286.13,93.00 238.13,93.00 238.13,84.00 286.13,84.00" fill="#ffffff" data-layer="openings"/>
+<polyline points="286.13,85.53 238.13,85.53" fill="none" stroke="#3f7fc4" stroke-width="1.2" stroke-linecap="round" data-layer="openings"/>
+<polyline points="286.13,88.50 238.13,88.50" fill="none" stroke="#3f7fc4" stroke-width="1.2" stroke-linecap="round" data-layer="openings"/>
+<polyline points="286.13,91.47 238.13,91.47" fill="none" stroke="#3f7fc4" stroke-width="1.2" stroke-linecap="round" data-layer="openings"/>
+<polygon points="144.00,257.63 144.00,233.63 153.00,233.63 153.00,257.63" fill="#ffffff" data-layer="openings"/>
+<polyline points="151.47,257.63 151.47,233.63" fill="none" stroke="#3f7fc4" stroke-width="1.2" stroke-linecap="round" data-layer="openings"/>
+<polyline points="148.50,257.63 148.50,233.63" fill="none" stroke="#3f7fc4" stroke-width="1.2" stroke-linecap="round" data-layer="openings"/>
+<polyline points="145.53,257.63 145.53,233.63" fill="none" stroke="#3f7fc4" stroke-width="1.2" stroke-linecap="round" data-layer="openings"/>
+<polygon points="144.00,154.13 144.00,130.13 153.00,130.13 153.00,154.13" fill="#ffffff" data-layer="openings"/>
+<polyline points="151.47,154.13 151.47,130.13" fill="none" stroke="#3f7fc4" stroke-width="1.2" stroke-linecap="round" data-layer="openings"/>
+<polyline points="148.50,154.13 148.50,130.13" fill="none" stroke="#3f7fc4" stroke-width="1.2" stroke-linecap="round" data-layer="openings"/>
+<polyline points="145.53,154.13 145.53,130.13" fill="none" stroke="#3f7fc4" stroke-width="1.2" stroke-linecap="round" data-layer="openings"/>
+<polygon points="188.63,93.00 164.63,93.00 164.63,84.00 188.63,84.00" fill="#ffffff" data-layer="openings"/>
+<polyline points="188.63,85.53 164.63,85.53" fill="none" stroke="#3f7fc4" stroke-width="1.2" stroke-linecap="round" data-layer="openings"/>
+<polyline points="188.63,88.50 164.63,88.50" fill="none" stroke="#3f7fc4" stroke-width="1.2" stroke-linecap="round" data-layer="openings"/>
+<polyline points="188.63,91.47 164.63,91.47" fill="none" stroke="#3f7fc4" stroke-width="1.2" stroke-linecap="round" data-layer="openings"/>
+<text x="360.00" y="367.50" font-size="10" fill="#1d2026" text-anchor="middle" font-family="Roboto, Arial, sans-serif" font-weight="700" data-layer="labels">Living</text>
+<text x="360.00" y="380.50" font-size="8" fill="#1f4e8c" text-anchor="middle" font-family="Roboto, Arial, sans-serif" data-layer="dimensions">12'-0&quot; x 13'-3&quot;</text>
+<text x="214.50" y="362.00" font-size="10" fill="#1d2026" text-anchor="middle" font-family="Roboto, Arial, sans-serif" font-weight="700" data-layer="labels">Master</text>
+<text x="214.50" y="373.00" font-size="10" fill="#1d2026" text-anchor="middle" font-family="Roboto, Arial, sans-serif" font-weight="700" data-layer="labels">Bedroom</text>
+<text x="214.50" y="386.00" font-size="8" fill="#1f4e8c" text-anchor="middle" font-family="Roboto, Arial, sans-serif" data-layer="dimensions">12'-0&quot; x 11'-0&quot;</text>
+<text x="379.50" y="253.13" font-size="10" fill="#1d2026" text-anchor="middle" font-family="Roboto, Arial, sans-serif" font-weight="700" data-layer="labels">Kitchen</text>
+<text x="379.50" y="266.13" font-size="8" fill="#1f4e8c" text-anchor="middle" font-family="Roboto, Arial, sans-serif" data-layer="dimensions">7'-1&quot; x 10'-0&quot;</text>
+<text x="379.50" y="149.63" font-size="10" fill="#1d2026" text-anchor="middle" font-family="Roboto, Arial, sans-serif" font-weight="700" data-layer="labels">Bedroom</text>
+<text x="379.50" y="162.63" font-size="8" fill="#1f4e8c" text-anchor="middle" font-family="Roboto, Arial, sans-serif" data-layer="dimensions">10'-2&quot; x 10'-0&quot;</text>
+<text x="262.13" y="192.00" font-size="10" fill="#1d2026" text-anchor="middle" font-family="Roboto, Arial, sans-serif" font-weight="700" data-layer="labels">Dining</text>
+<text x="262.13" y="205.00" font-size="8" fill="#1f4e8c" text-anchor="middle" font-family="Roboto, Arial, sans-serif" data-layer="dimensions">17'-3&quot; x 9'-7&quot;</text>
+<text x="176.63" y="240.13" font-size="10" fill="#1d2026" text-anchor="middle" font-family="Roboto, Arial, sans-serif" font-weight="700" data-layer="labels">Attached</text>
+<text x="176.63" y="251.13" font-size="10" fill="#1d2026" text-anchor="middle" font-family="Roboto, Arial, sans-serif" font-weight="700" data-layer="labels">Toilet</text>
+<text x="176.63" y="264.13" font-size="8" fill="#1f4e8c" text-anchor="middle" font-family="Roboto, Arial, sans-serif" data-layer="dimensions">8'-4&quot; x 4'-8&quot;</text>
+<text x="176.63" y="136.63" font-size="10" fill="#1d2026" text-anchor="middle" font-family="Roboto, Arial, sans-serif" font-weight="700" data-layer="labels">Common</text>
+<text x="176.63" y="147.63" font-size="10" fill="#1d2026" text-anchor="middle" font-family="Roboto, Arial, sans-serif" font-weight="700" data-layer="labels">Toilet</text>
+<text x="176.63" y="160.63" font-size="8" fill="#1f4e8c" text-anchor="middle" font-family="Roboto, Arial, sans-serif" data-layer="dimensions">8'-11&quot; x 4'-8&quot;</text>
+<polyline points="602.40,444.00 602.40,84.00" fill="none" stroke="#1f4e8c" stroke-width="1" stroke-linecap="round" data-layer="dimensions"/>
+<text x="609.60" y="264.00" font-size="10" fill="#1f4e8c" text-anchor="middle" font-family="Roboto, Arial, sans-serif" font-weight="700" data-layer="dimensions">30'-0&quot;</text>
+<polyline points="564.00,45.60 84.00,45.60" fill="none" stroke="#1f4e8c" stroke-width="1" stroke-linecap="round" data-layer="dimensions"/>
+<text x="324.00" y="38.40" font-size="10" fill="#1f4e8c" text-anchor="start" font-family="Roboto, Arial, sans-serif" font-weight="700" data-layer="dimensions">40'-0&quot;</text>
+<polyline points="168.00,-24.00 108.00,-24.00" fill="none" stroke="#000" stroke-width="2" stroke-linecap="round" data-layer="north"/>
+<polygon points="108.00,-24.00 103.00,-12.00 113.00,-12.00" fill="#000" data-layer="north"/>
+<text x="108.00" y="-30.00" font-size="14" fill="#000" text-anchor="middle" font-family="Roboto, Arial, sans-serif" font-weight="700" data-layer="north">N</text>
+</svg>

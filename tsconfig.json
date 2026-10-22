@@ -10,5 +10,5 @@
     "noEmit": true,
     "isolatedModules": true
   },
-  "include": ["engine", "config", "tests", "scripts"]
+  "include": ["engine", "config", "render", "tests", "scripts"]
 }
