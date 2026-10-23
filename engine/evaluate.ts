@@ -11,10 +11,11 @@ const WINDOW_FT = 4;
 const VENT_FT = 2;
 const DOOR_CLEARANCE = 0.5;
 const VASTU_FLAG_BELOW = 0.6;
-/** A hall or passage may not be a corridor: no longer than this, nor more than this many times its width. */
-const MAX_PASSAGE_FT = 20;
+/** A hall or passage may not be a corridor: no longer than this, nor wider than this, nor more than this many times its width. */
+const MAX_PASSAGE_FT = 15;
+const MAX_PASSAGE_WIDTH_FT = 5;
 export const SERVICE_ROOM_KINDS = new Set(['attachedToilet', 'commonToilet', 'utility', 'store', 'puja']);
-const MAX_PASSAGE_RATIO = 6;
+const MAX_PASSAGE_RATIO = 3;
 const MAIN_DOOR_FT = 3.5;
 
 const BEDROOM_KINDS = new Set(['master', 'bedroom', 'guest']);
@@ -86,8 +87,10 @@ export function evaluate(
     if (r.kind !== 'passage') continue;
     const long = Math.max(r.rect.w, r.rect.h);
     const short = Math.min(r.rect.w, r.rect.h);
-    if (long > MAX_PASSAGE_FT + 1e-6 || long / short > MAX_PASSAGE_RATIO + 1e-6) {
-      violations.push(`Passage is a corridor (${long.toFixed(0)} ft by ${short.toFixed(1)} ft); a hall must be ${MAX_PASSAGE_FT} ft or less`);
+    if (long > MAX_PASSAGE_FT + 1e-6 || short > MAX_PASSAGE_WIDTH_FT + 1e-6 || long / short > MAX_PASSAGE_RATIO + 1e-6) {
+      violations.push(
+        `Passage is a corridor (${long.toFixed(1)} ft by ${short.toFixed(1)} ft); a passage must be ${MAX_PASSAGE_FT} ft or less long, ${MAX_PASSAGE_WIDTH_FT} ft or less wide, and at most 1:${MAX_PASSAGE_RATIO}`,
+      );
     }
   }
 

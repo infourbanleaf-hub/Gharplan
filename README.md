@@ -112,10 +112,9 @@ plot width. That is the next design step.
 
 ## Corridors
 
-A passage or hall may not be a corridor: it can be at most 20 ft long and no more than six times
-its width. Layouts that break this are rejected, so a long strip like the 3.5 ft x 38 ft hall
-in the first template review can't be chosen. The 20 ft limit follows the Groot Parys passages
-(4-7 m long); see RULES.md.
+A passage or hall may not be a corridor: it can be at most 15 ft long, at most 5 ft wide, and at
+most 1:3 (width to length). Layouts that break this are rejected, so a long strip like the 3.5 ft x
+38 ft hall in the first template review can't be chosen. See RULES.md.
 
 The fixed plan templates from the reference plans were removed, because their halls were all
 corridors under this rule. Halls are now optional and short. Bedrooms usually open off the living

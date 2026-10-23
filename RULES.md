@@ -23,7 +23,7 @@ rule is implemented in the engine. Sizes are in feet unless marked m or m2.
 | R5 | En-suite opens off its own bedroom and is about 6-8 m2 (about 7.5 x 9 ft default). | C1 6.2, C2 6.4, A 8.3. | Implemented as default 7.5 x 9; minimum 4.5 x 7 kept for feasibility. The oversize cost still pushes the search toward the default. |
 | R6 | Common bathroom about 4.7-8 m2 (6.5 x 7.5 ft default). | C1 4.65, B 8 x 5 (4.6 m2), A 4.2 m2. | Implemented as default 6.5 x 7.5. |
 | R7 | Dining sits between living and kitchen. | B, C1, C2. | Implemented: kitchen-dining score and dining-living score in `scoreCard`. |
-| R8 | A passage is short (about 4-7 m, 13-23 ft) and at most about 3.5 ft wide, or 6 ft in a shared lobby. | C1 passage 4 m2, Groot Parys passage 1.0 m wide, B 1.83 m shared passage. | Implemented: passage width 3.5 ft; hard limit 20 ft long and 6:1 ratio (was 16 ft and 5:1). The longer limit is a judgement call; check it against the corridor screenshots. |
+| R8 | Corridor limit: at most 15 ft long, 5 ft wide, and 1:3 width to length. Generated passages are 3.5 ft wide. | Client rule (replaces the earlier 16 ft / 5:1 rule). Reference passages are 3.5 ft (Groot Parys) and 6 ft (Kanpur lobby). | Implemented as a hard rule in `evaluate.ts`. |
 | R9 | Kitchen next to the entrance or the service side, with a service yard behind it. | C1 and C2 both place the service yard off the kitchen. | Open. Needs a utility/service-yard zone and a zoning term. |
 | R10 | Covered entrance near the kitchen or living on the road side. | C1 2.9 m2, C2 5.7 m2. | Open. Entrance is on the road side (implemented), but no covered-porch area is modelled. |
 | R11 | Garage at the road side, inside the building footprint. | C1 and C2 both have a 19 m2 garage at the front. | Open. Parking is only in the front setback today; a garage inside the footprint needs a 9 ft setback. |
@@ -41,14 +41,11 @@ rule is implemented in the engine. Sizes are in feet unless marked m or m2.
   as too small (about 721 sq ft of rooms in a 709 sq ft envelope), and the 30 x 50 and 40 x 60 cases
   returned no layouts. The minimums were returned to the previous floors. The search still aims at
   the defaults, and the oversize cost pulls rooms toward them.
-- `engine/evaluate.ts`: passage limit changed from 16 ft / 5:1 to 20 ft / 6:1 (R8).
+- `engine/evaluate.ts`: corridor limit set to 15 ft long, 5 ft wide, and 1:3 (R8).
+- Setbacks: unchanged. `config/setbacks.json` keeps the brief's bands (client instruction).
 - Acceptance: all four cases return three layouts each. `npx vitest run`: 45 of 45 pass.
 
 ## Open items for the user
 
-1. Passage limit: 20 ft / 6:1 or keep 16 ft / 5:1? The longer limit matches the Groot Parys passage
-   but is more permissive than the corridor review that prompted it.
-2. Setbacks: the brief table is tighter than the references, which use about 4 ft at the front and
-   rear. Decide which to use.
-3. Garage inside the footprint (R11) needs a setback rule decision.
-4. Service yard and covered entrance (R9, R10) need a zone type each, if they should be scored.
+1. Service yard and covered entrance (R9, R10) need a zone type each, if they should be scored.
+2. Garage (R11) is parked for now, per client instruction.
