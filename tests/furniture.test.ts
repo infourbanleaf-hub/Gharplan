@@ -114,3 +114,11 @@ describe('furniture placement', () => {
     }
   });
 });
+
+describe('zone-first search (optional, strict Vastu)', () => {
+  it('still returns the requested layouts when zone-first starts are on', () => {
+    const input = { ...ACCEPTANCE_CASES[3].input, zoneFirst: true };
+    const res = generatePlans(input, { count: 3, restarts: 600 });
+    expect(res.layouts.length).toBe(3);
+  }, 120_000);
+});

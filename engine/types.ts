@@ -61,6 +61,8 @@ export interface PlotInput {
   /** Optional per-room size overrides in feet. Anything omitted uses the defaults in config. */
   roomSizes?: Partial<Record<RoomKind, RoomSizeOverride>>;
   vastu: VastuMode;
+  /** Optional, strict Vastu only: start the search from zone-sorted room orders. */
+  zoneFirst?: boolean;
   priority: Priority;
 }
 

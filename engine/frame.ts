@@ -81,3 +81,12 @@ export function localToWorld(px: number, py: number, frame: Frame): { x: number;
     y: dx * frame.right[1] + dy * frame.inward[1],
   };
 }
+
+/** Unit world vector for a compass direction (north = +y, east = +x). */
+export function compassVector(c: Compass): [number, number] {
+  const q = Math.SQRT1_2;
+  const v: Record<Compass, [number, number]> = {
+    N: [0, 1], NE: [q, q], E: [1, 0], SE: [q, -q], S: [0, -1], SW: [-q, -q], W: [-1, 0], NW: [-q, q],
+  };
+  return v[c];
+}

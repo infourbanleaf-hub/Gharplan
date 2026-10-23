@@ -192,6 +192,12 @@ export function PrefsStep({ input, setInput }: StepProps) {
         onChange={(v) => setInput({ ...input, vastu: v })}
       />
       <Hint>{t.prefs.strictHint}</Hint>
+      {input.vastu === 'strict' ? (
+        <>
+          <ToggleRow label={t.prefs.zoneFirst} value={input.zoneFirst === true} onChange={(v) => setInput({ ...input, zoneFirst: v })} />
+          <Hint>{t.prefs.zoneFirstHint}</Hint>
+        </>
+      ) : null}
       <Label>{t.prefs.priority}</Label>
       <ChipGroup
         options={[

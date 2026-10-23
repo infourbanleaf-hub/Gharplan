@@ -72,3 +72,13 @@ export function vastuMean(rules: RuleScore[]): number | null {
   if (rules.length === 0) return null;
   return rules.reduce((sum, r) => sum + r.score, 0) / rules.length;
 }
+
+/** Compass zones each room should sit in under Vastu. Used to seed the layout search. */
+export const PREFERRED_ZONES: Partial<Record<RoomKind, Compass[]>> = {
+  master: ['SW'],
+  kitchen: ['SE', 'NW'],
+  puja: ['NE'],
+  commonToilet: ['NW', 'W'],
+  attachedToilet: ['NW', 'W'],
+  stair: ['S', 'SW', 'W'],
+};

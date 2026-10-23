@@ -4,7 +4,8 @@ import { buildProgram } from './program';
 import { evaluate, doorWidthOf, isToilet, type Candidate, type Evaluation } from './evaluate';
 import { exteriorSides, sharedEdge, type SharedEdge } from './geometry';
 import { mulberry32, shuffle } from './rng';
-import { preferenceScore } from './vastu';
+import { preferenceScore, PREFERRED_ZONES } from './vastu';
+import { compassVector } from './frame';
 import { parkingFor } from './parking';
 import { placeFurniture } from './furniture';
 import type {
@@ -73,6 +74,8 @@ export function generatePlans(rawInput: PlotInput, opts: GenerateOptions = {}): 
   }
 
   const penalty = vastuPenalty(frame, input);
+  // Zone-first starts are optional (strict Vastu only): a small gain, measured over three seeds.
+  const zoned = input.vastu === 'strict' && input.zoneFirst === true;
   const rand = mulberry32(seed);
   const valid: { cand: Candidate; ev: Evaluation; seed: number }[] = [];
   let sampled = 0;
@@ -92,7 +95,7 @@ export function generatePlans(rawInput: PlotInput, opts: GenerateOptions = {}): 
     const restartRand = mulberry32(Math.floor(rand() * 2 ** 31));
     const structSeed = Math.floor(restartRand() * 2 ** 31);
     const chainSeed = Math.floor(restartRand() * 2 ** 31);
-    let order = orderItems(items, restartRand);
+    let order = zoned && restartRand() < 0.5 ? orderItemsZoned(items, frame, restartRand) : orderItems(items, restartRand);
     let cur = evaluateOrder(order, structSeed, chainSeed);
     for (let step = 0; step < CHAIN_STEPS && cur.cost > 0; step++) {
       const next = order.slice();
@@ -360,6 +363,40 @@ function pickCuts(items: Item[], groups: number, rand: () => number): number[] {
     minIndex = best + 1;
   }
   return cuts;
+}
+
+/**
+ * Zone-first split order (strict Vastu only). Bundles whose rooms want the low-left part of the
+ * plot (in local frame) go first, so the first strips land where those rooms belong. Rooms with
+ * no zone rule keep a neutral position. The search then refines from there.
+ */
+export function orderItemsZoned(items: Item[], frame: Frame, rand: () => number): Item[] {
+  const bundles = bundlesOf(items);
+  const keyOf = (bundle: Item[]): number => {
+    const zones = bundle.flatMap((it) => PREFERRED_ZONES[it.spec.kind] ?? []);
+    if (zones.length === 0) return 0;
+    const v = zones.reduce(
+      (acc, c) => {
+        const [wx, wy] = compassVector(c);
+        return [acc[0] + wx / zones.length, acc[1] + wy / zones.length];
+      },
+      [0, 0],
+    );
+    const lx = v[0] * frame.right[0] + v[1] * frame.right[1];
+    const ly = v[0] * frame.inward[0] + v[1] * frame.inward[1];
+    return lx + ly + (rand() - 0.5) * 0.3;
+  };
+  return bundles.map((b) => ({ b, k: keyOf(b) })).sort((a, b) => a.k - b.k).flatMap((x) => x.b);
+}
+
+function bundlesOf(items: Item[]): Item[][] {
+  const bundles: Item[][] = [];
+  for (const it of items) {
+    if (it.spec.kind === 'attachedToilet') continue;
+    const att = items.find((x) => x.spec.kind === 'attachedToilet' && x.spec.attachedTo === it.spec.id);
+    bundles.push(att ? [it, att] : [it]);
+  }
+  return bundles;
 }
 
 /**

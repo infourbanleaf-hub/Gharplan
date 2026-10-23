@@ -68,6 +68,8 @@ export const en = {
     size: 'Maximum room sizes',
     openSpace: 'Maximum open space',
     ventilation: 'Best ventilation',
+    zoneFirst: 'Zone-first search (slower)',
+    zoneFirstHint: 'Starts the search with rooms in their Vastu zones. Gives a small gain in Vastu scores; off by default.',
     strictHint: 'Strict still shows every layout, and flags any room that misses its Vastu zone.',
   },
   results: {
