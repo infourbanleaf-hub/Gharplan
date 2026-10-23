@@ -25,14 +25,19 @@ export function formatArea(sqft: number, unit: Unit = 'ftin'): string {
   return `${Math.round(sqft)} sq ft`;
 }
 
+const MAX_ENTRY_LENGTH = 24;
+// Linear-time pattern: whitespace is removed first, so no quantifier can backtrack into another.
+const FEET_INCHES = /^(\d+(?:\.\d+)?)(?:'|ft|feet)?(?:-?(\d+(?:\.\d+)?)(?:"|in|inch|inches)?)?$/;
+
 /**
  * Parses a feet-inches entry such as 12'-6", 12'6", 12 ft 6 in or 12.5 (feet).
  * Returns feet, or null if the text cannot be parsed.
  */
 export function parseFeetInches(text: string): number | null {
-  const s = text.trim().toLowerCase();
+  if (text.length > MAX_ENTRY_LENGTH) return null;
+  const s = text.trim().toLowerCase().replace(/\s+/g, '');
   if (s === '') return null;
-  const m = s.match(/^(\d+(?:\.\d+)?)\s*(?:'|ft|feet)?\s*(?:-|\s)?\s*(\d+(?:\.\d+)?)?\s*(?:"|in|inch|inches)?$/);
+  const m = s.match(FEET_INCHES);
   if (!m) return null;
   const feet = Number(m[1]);
   const inches = m[2] !== undefined ? Number(m[2]) : 0;

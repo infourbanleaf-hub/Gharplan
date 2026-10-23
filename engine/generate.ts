@@ -7,6 +7,7 @@ import { mulberry32, shuffle } from './rng';
 import { preferenceScore, PREFERRED_ZONES } from './vastu';
 import { compassVector } from './frame';
 import { parkingFor } from './parking';
+import { validatePlotInput } from './limits';
 import { placeFurniture } from './furniture';
 import type {
   Frame, GenerationResult, Layout, Opening, ParkingSlot, PlacedRoom, PlotInput, Rect, RoomSpec, Side,
@@ -48,6 +49,8 @@ export function normaliseInput(input: PlotInput): PlotInput {
 
 export function generatePlans(rawInput: PlotInput, opts: GenerateOptions = {}): GenerationResult {
   const input = normaliseInput(rawInput);
+  const limitErrors = validatePlotInput(input);
+  if (limitErrors.length > 0) return { layouts: [], errors: limitErrors, warnings: [], stats: { sampled: 0, valid: 0 } };
   const count = opts.count ?? 3;
   const restarts = opts.restarts ?? 400;
   const seed = opts.seed ?? 20260101;
