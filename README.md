@@ -97,6 +97,19 @@ to free up furniture space, and the best shift is kept for each layout shown. Th
 miss is a wardrobe in a small bedroom, where a door or window and the 2'-6" clearance take the
 wall. Furniture fit is part of the final ranking, not yet of the search itself.
 
+## Relationships between spaces
+
+Layouts are ranked on how well spaces relate, based on the reference plans: bedrooms reached from
+the hall or living room, dining next to living, wet rooms clustered, bedrooms away from the road,
+and a hall of 4-12% of built-up area. Measured on the acceptance cases (`scripts/relations.ts`),
+bedrooms reached from the hall or living room rise from 0.30 to 0.54 on average, and dining next
+to living from 0.50 to 0.58.
+
+Open: the search still rarely produces a hall. A hall needs the bedrooms to stack along a 30 ft
+frontage, and that doesn't fit the minimum bedroom sizes on the 30 ft plots. A hall plan needs
+wider plots (34-40 ft in the references) or a different generator, such as templates for each
+plot width. That is the next design step.
+
 ## Soft scores (ranked, shown on the scorecard)
 
 Room size, cross-ventilation, circulation (passages under 12% of built-up), kitchen next to

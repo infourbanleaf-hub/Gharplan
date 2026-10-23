@@ -6,6 +6,7 @@ import { parkingFor } from './parking';
 
 const MAX_ASPECT = 2;
 const MAX_CIRCULATION = 0.12;
+const IDEAL_CIRCULATION_MIN = 0.04;
 const WINDOW_FT = 4;
 const VENT_FT = 2;
 const DOOR_CLEARANCE = 0.5;
@@ -181,7 +182,7 @@ export function evaluate(
       return `${r.label}: does not meet "${rule.rule}"`;
     });
 
-  const scorecard = scoreCard(cand, frame, input, specById, exterior, vastuRules);
+  const scorecard = scoreCard(cand, frame, input, specById, exterior, vastuRules, parent);
   const total = scorecard.total;
   return { valid: violations.length === 0, violations, vastuFlags, scorecard, vastuRules, total, parent };
 }
@@ -207,6 +208,12 @@ function mainDoorClear(living: Rect, frame: Frame, input: PlotInput): boolean {
   return false;
 }
 
+/** The room a room opens from, according to the door tree built during evaluation. */
+function accessParent(parent: Map<string, string>, roomId: string, rooms: PlacedRoom[]): PlacedRoom | null {
+  const id = parent.get(roomId);
+  return id ? rooms.find((r) => r.id === id) ?? null : null;
+}
+
 function roadSidesOf(input: PlotInput): Side[] {
   const sides: Side[] = ['front'];
   if (input.roadSide === 'corner') {
@@ -223,6 +230,7 @@ function scoreCard(
   specById: Map<string, RoomSpec>,
   exterior: Map<string, { side: Side; length: number }[]>,
   vastuRules: RuleScore[],
+  parent: Map<string, string>,
 ): Scorecard {
   const rooms = cand.rooms;
   const builtUp = rectArea(frame.buildable);
@@ -247,8 +255,27 @@ function scoreCard(
     return s + (sides >= 2 ? 1 : sides === 1 ? 0.6 : 0);
   }, 0) / Math.max(1, ventRooms.length);
 
-  // Circulation: full credit at 0%, falls off past the 12% limit.
-  const circScore = clamp01(1 - (circRatio / MAX_CIRCULATION) * 0.25 - Math.max(0, circRatio - MAX_CIRCULATION) * 5);
+  // Circulation: a hall of 4-12% of built-up area is ideal; none is acceptable; past 12% is penalised.
+  const circScore = circRatio > MAX_CIRCULATION
+    ? clamp01(1 - (circRatio - MAX_CIRCULATION) * 5)
+    : circRatio >= IDEAL_CIRCULATION_MIN ? 1 : 0.6 + (circRatio / IDEAL_CIRCULATION_MIN) * 0.4;
+
+  // Access: bedrooms opened from the hall or living room (not from another bedroom).
+  const beds = rooms.filter((r) => isBedroom(r.kind));
+  const bedAccess = beds.length === 0 ? 1 : beds.filter((b) => {
+    const from = accessParent(parent, b.id, rooms);
+    return from !== null && (from.kind === 'passage' || from.kind === 'living');
+  }).length / beds.length;
+
+  // Zoning: bedrooms away from the road side; wet rooms clustered; dining next to living.
+  const roadSides = roadSidesOf(input);
+  const bedsOffRoad = beds.length === 0 ? 1 : beds.filter((b) => !(exterior.get(b.id) ?? []).some((e) => roadSides.includes(e.side))).length / beds.length;
+  const wetRooms = rooms.filter((r) => r.kind === 'commonToilet' || r.kind === 'attachedToilet' || r.kind === 'utility');
+  const wetClustered = wetRooms.length <= 1 ? 1 : wetRooms.filter((w) => wetRooms.some((o) => o !== w && sharedEdge(w.rect, o.rect))).length / wetRooms.length;
+  const livingRoom = rooms.find((r) => r.kind === 'living');
+  const diningRoom = rooms.find((r) => r.kind === 'dining');
+  const diningNextToLiving = !diningRoom || !livingRoom ? 1 : sharedEdge(diningRoom.rect, livingRoom.rect) ? 1 : 0;
+  const zoning = (bedsOffRoad + wetClustered + diningNextToLiving) / 3;
 
   // Kitchen next to dining
   const kitchen = rooms.find((r) => r.kind === 'kitchen');
@@ -268,7 +295,10 @@ function scoreCard(
   const vastu = vastuMean(vastuRules);
 
   // Weights by priority. Vastu only counts when it is required.
-  const w = { size: 0.2, vent: 0.2, circ: 0.15, kd: 0.1, open: 0.1, vastu: input.vastu === 'strict' ? 0.3 : input.vastu === 'moderate' ? 0.15 : 0 };
+  const w = {
+    size: 0.15, vent: 0.15, circ: 0.12, kd: 0.08, open: 0.08, access: 0.14, zoning: 0.12,
+    vastu: input.vastu === 'strict' ? 0.3 : input.vastu === 'moderate' ? 0.15 : 0,
+  };
   if (input.priority === 'size') w.size *= 1.8;
   if (input.priority === 'ventilation') w.vent *= 1.8;
   if (input.priority === 'openSpace') w.open *= 2.5;
@@ -278,6 +308,8 @@ function scoreCard(
     [w.circ, circScore],
     [w.kd, kitchenDining],
     [w.open, openScore],
+    [w.access, bedAccess],
+    [w.zoning, zoning],
   ];
   if (vastu !== null) parts.push([w.vastu, vastu]);
   const wsum = parts.reduce((s, [wt]) => s + wt, 0);
