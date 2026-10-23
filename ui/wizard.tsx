@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Pressable, Text, View, StyleSheet } from 'react-native';
 import { defaultSetbacks, roomConfig, type Compass, type PlotInput, type RoomKind, type Unit } from '../engine';
-import { en as t } from './strings';
+import { useT } from './i18n';
 import { colors, space } from './theme';
 import { ChipGroup, Hint, Label, LengthField, Title, ToggleRow } from './components';
 
@@ -17,6 +17,7 @@ const COMPASS: { value: Compass; label: string }[] = [
 ];
 
 export function PlotStep({ input, setInput, unit }: StepProps) {
+  const t = useT();
   const defaults = defaultSetbacks(input);
   const sb = { ...defaults, ...input.setbacks };
   const setSetback = (key: keyof typeof sb, ft: number) =>
@@ -59,6 +60,7 @@ export function PlotStep({ input, setInput, unit }: StepProps) {
 }
 
 export function BuildingStep({ input, setInput }: StepProps) {
+  const t = useT();
   return (
     <View>
       <Title>{t.building.title}</Title>
@@ -91,10 +93,11 @@ export function BuildingStep({ input, setInput }: StepProps) {
 }
 
 const ROOM_KINDS: RoomKind[] = ['living', 'dining', 'kitchen', 'master', 'bedroom', 'attachedToilet', 'commonToilet', 'puja', 'study', 'guest', 'store', 'utility'];
-const ROOM_NAMES = t.roomNames as Partial<Record<RoomKind, string>>;
 
 export function RoomsStep({ input, setInput, unit }: StepProps) {
+  const t = useT();
   const [showSizes, setShowSizes] = useState(false);
+  const ROOM_NAMES = t.roomNames as Partial<Record<RoomKind, string>>;
   const bedroomNames = Array.from({ length: input.bhk }, (_, i) => (i === 0 ? t.rooms.master : `${t.rooms.bedroom} ${i + 1}`));
   const activeKinds = ROOM_KINDS.filter((k) => {
     if (k === 'dining') return input.rooms.dining;
@@ -174,6 +177,7 @@ export function RoomsStep({ input, setInput, unit }: StepProps) {
 }
 
 export function PrefsStep({ input, setInput }: StepProps) {
+  const t = useT();
   return (
     <View>
       <Title>{t.prefs.title}</Title>

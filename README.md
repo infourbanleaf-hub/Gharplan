@@ -137,6 +137,23 @@ improvement if testers need strict compliance.
 - First floor is not generated; the staircase is reserved on the ground floor.
 - Parking is placed at one end of the front setback, car long side along the frontage.
 
+## Languages
+
+English and Hindi. `ui/strings.ts` is the English table and `ui/strings.hi.ts` the Hindi one, with
+the same shape: TypeScript fails the build if a key is missing from Hindi, and a test checks that
+no Hindi value is empty. The choice is saved on the device; the switch is on the welcome screen.
+
+Covered by the translation: the wizard, results, viewer, export labels and the PDF page, plus the
+room names and car, two-wheeler and north labels on the plan.
+
+Not yet translated:
+- Warnings and rule notes produced by the engine (for example, "Living room does not face the
+  road"). They stay in English.
+- DXF text, which is for CAD and stays in English.
+
+The PDF loads Noto Sans Devanagari from Google Fonts when it is printed, so a Hindi PDF needs
+network access at print time.
+
 ## Android
 
 Checked here: `npx expo export --platform android` builds the Hermes bundle with no errors, and

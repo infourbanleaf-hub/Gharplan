@@ -2,11 +2,12 @@ import React from 'react';
 import { ScrollView, Text, View, StyleSheet } from 'react-native';
 import type { GenerationResult, Layout, Unit } from '../engine';
 import { formatArea } from '../engine';
-import { en as t } from './strings';
+import { useT } from './i18n';
 import { colors, space } from './theme';
 import { Button, Card, Hint, Title } from './components';
 
 export function GeneratingView() {
+  const t = useT();
   return (
     <View style={styles.center}>
       <Text style={styles.big}>{t.generating}</Text>
@@ -25,6 +26,7 @@ export function ResultsView({
   onEdit: () => void;
   saved: boolean;
 }) {
+  const t = useT();
   return (
     <ScrollView contentContainerStyle={styles.pad}>
       <Title>{t.results.title}</Title>
@@ -46,6 +48,7 @@ export function ResultsView({
 }
 
 function LayoutCard({ layout, unit, index, onView }: { layout: Layout; unit: Unit; index: number; onView: (i: number) => void }) {
+  const t = useT();
   const s = layout.scorecard;
   return (
     <Card onPress={() => onView(index)}>
@@ -62,6 +65,7 @@ function LayoutCard({ layout, unit, index, onView }: { layout: Layout; unit: Uni
 }
 
 function Row({ label, value }: { label: string; value: string }) {
+  const t = useT();
   return (
     <View style={styles.row}>
       <Text style={styles.rowLabel}>{label}</Text>

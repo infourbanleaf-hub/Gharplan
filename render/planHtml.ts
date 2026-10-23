@@ -1,6 +1,6 @@
 // Builds the PDF page as HTML: title block, plan, area statement and disclaimer.
 // The HTML is printed to PDF by expo-print on the phone, or by the browser on the web.
-import { planScene, sceneToSvg } from './index';
+import { planScene, sceneToSvg, type PlanOptions } from './index';
 import { areaStatement } from '../engine/export/areas';
 import { formatLength, formatArea, type Layout, type PlotInput, type Unit } from '../engine';
 
@@ -29,6 +29,8 @@ export interface PlanPageInput {
   input: PlotInput;
   unit: Unit;
   copy: ExportCopy;
+  /** Options for the plan drawing: translated labels and room names. */
+  planOptions?: Partial<PlanOptions>;
   /** Date text shown in the title block. */
   date: string;
   projectName: string;
@@ -38,7 +40,7 @@ const esc = (s: string) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replac
 
 export function buildPlanPageHtml(p: PlanPageInput): string {
   const { layout, input, unit, copy } = p;
-  const svg = sceneToSvg(planScene(layout, { unit, showSetbacks: true, showDimensions: true, showFurniture: true }));
+  const svg = sceneToSvg(planScene(layout, { unit, showSetbacks: true, showDimensions: true, showFurniture: true, ...p.planOptions }));
   const stmt = areaStatement(layout);
   const area = (sqft: number) => (unit === 'm' ? formatArea(sqft, 'm') : `${Math.round(sqft)} ${copy.sqFt}`);
   const rows = stmt.rows
@@ -51,10 +53,12 @@ export function buildPlanPageHtml(p: PlanPageInput): string {
   return `<!doctype html>
 <html><head><meta charset="utf-8"/>
 <title>${esc(copy.title)}</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans:wght@400;700&family=Noto+Sans+Devanagari:wght@400;700&display=swap" rel="stylesheet"/>
 <style>
   @page { size: A4 landscape; margin: 10mm; }
   * { box-sizing: border-box; }
-  body { margin: 0; font-family: Roboto, Arial, sans-serif; color: #1d2026; font-size: 11px; }
+  body { margin: 0; font-family: Roboto, 'Noto Sans', 'Noto Sans Devanagari', Arial, sans-serif; color: #1d2026; font-size: 11px; }
   .page { display: flex; flex-direction: column; height: 186mm; }
   .head { display: flex; justify-content: space-between; align-items: flex-end; border-bottom: 2px solid #1f6f5c; padding-bottom: 4px; }
   .head h1 { font-size: 18px; margin: 0; color: #1f6f5c; }

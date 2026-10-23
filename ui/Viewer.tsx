@@ -2,11 +2,11 @@ import React, { useMemo, useRef, useState } from 'react';
 import { Alert, Pressable, ScrollView, StyleSheet, Text, View, type View as RNView } from 'react-native';
 import { captureRef } from 'react-native-view-shot';
 import { applyRoomEdits, formatArea, formatLength, roomLimits, validateLayout, type Layout, type PlotInput, type RoomEdit, type Unit } from '../engine';
-import { en as t, exportCopy } from './strings';
+import { useT } from './i18n';
 import { colors, space, touch } from './theme';
 import { Button, ChipGroup, Hint, LengthField, Title, ToggleRow } from './components';
 import { PlanView } from './PlanView';
-import { exportDxf, exportPdf, shareImage } from './export';
+import { exportDxf, exportPdf, planOptionsFor, shareImage } from './export';
 import { sceneToSvg, planScene } from '../render';
 
 interface Props {
@@ -17,6 +17,7 @@ interface Props {
 }
 
 export function ViewerScreen({ layout, input, unit, onUnit }: Props) {
+  const t = useT();
   const [showSetbacks, setShowSetbacks] = useState(true);
   const [showDimensions, setShowDimensions] = useState(true);
   const [showFurniture, setShowFurniture] = useState(true);
@@ -30,8 +31,8 @@ export function ViewerScreen({ layout, input, unit, onUnit }: Props) {
   const issues = useMemo(() => validateLayout(edited, input), [edited, input]);
   const issueRoomIds = useMemo(() => [...new Set(issues.map((i) => i.roomId).filter((x): x is string => !!x))], [issues]);
   const options = useMemo(
-    () => ({ unit, showSetbacks, showDimensions, showFurniture, selectedRoomId: selectedId ?? undefined, issueRoomIds }),
-    [unit, showSetbacks, showDimensions, showFurniture, selectedId, issueRoomIds],
+    () => ({ unit, showSetbacks, showDimensions, showFurniture, selectedRoomId: selectedId ?? undefined, issueRoomIds, ...planOptionsFor(t) }),
+    [unit, showSetbacks, showDimensions, showFurniture, selectedId, issueRoomIds, t],
   );
   const s = edited.scorecard;
   const editable = edited.rooms.filter((r) => r.kind !== 'passage' && roomLimits(input, r.id));
@@ -42,7 +43,7 @@ export function ViewerScreen({ layout, input, unit, onUnit }: Props) {
     try {
       await action();
     } catch {
-      Alert.alert(exportCopy.exportFailed);
+      Alert.alert(t.exportCopy.exportFailed);
     } finally {
       setBusy(false);
     }
@@ -112,10 +113,10 @@ export function ViewerScreen({ layout, input, unit, onUnit }: Props) {
 
         <Title>{t.viewer.exportTitle}</Title>
         <Hint>{t.viewer.exportHint}</Hint>
-        <Button label={exportCopy.exportPdf} disabled={busy} onPress={() => runExport(() => exportPdf(edited, input, unit))} />
-        <Button label={exportCopy.exportDxf} kind="ghost" disabled={busy} onPress={() => runExport(() => exportDxf(edited))} />
+        <Button label={t.exportCopy.exportPdf} disabled={busy} onPress={() => runExport(() => exportPdf(edited, input, unit, t))} />
+        <Button label={t.exportCopy.exportDxf} kind="ghost" disabled={busy} onPress={() => runExport(() => exportDxf(edited))} />
         <Button
-          label={exportCopy.share}
+          label={t.exportCopy.share}
           kind="ghost"
           disabled={busy}
           onPress={() => runExport(() => shareImage(
@@ -153,6 +154,7 @@ function RoomEditor({
   unit: Unit; hasEdit: boolean;
   onApply: (w: number, h: number) => void; onReset: () => void;
 }) {
+  const t = useT();
   const [w, setW] = useState(currentW);
   const [h, setH] = useState(currentH);
   const fmt = (ft: number) => formatLength(ft, unit);
@@ -169,6 +171,7 @@ function RoomEditor({
 }
 
 function Stat({ label, value }: { label: string; value: string }) {
+  const t = useT();
   return (
     <View style={styles.stat}>
       <Text style={styles.statLabel}>{label}</Text>

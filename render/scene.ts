@@ -34,6 +34,8 @@ export interface PlanOptions {
   showFurniture: boolean;
   /** Text for the parking and north labels. */
   labels: PlanLabels;
+  /** Room names by kind, for translated labels. Engine labels are used where missing. */
+  roomLabels?: Partial<Record<string, string>>;
   /** Room to outline in the accent colour (the one being edited). */
   selectedRoomId?: string;
   /** Rooms with validation issues, outlined in red. */
@@ -165,7 +167,7 @@ export function planScene(layout: Layout, opts: Partial<PlanOptions> = {}): Scen
   for (const r of layout.rooms) {
     if (r.kind === 'passage') continue;
     const c = { x: r.rect.x + r.rect.w / 2, y: r.rect.y + r.rect.h / 2 };
-    const lines = labelLines(r.label);
+    const lines = labelLines(o.roomLabels?.[r.kind] ?? r.label);
     const lineGap = 11;
     const firstDy = -((lines.length - 1) * lineGap) / 2;
     lines.forEach((t, i) => text(c, t, 10, COLORS.text, 'labels', 'middle', 'bold', firstDy + i * lineGap));

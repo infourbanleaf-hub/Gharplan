@@ -1,5 +1,8 @@
-// All user-facing text lives here so the Hindi translation can be added as a second file later.
+// All user-facing text lives here. Hindi lives in strings.hi.ts with the same shape; TypeScript
+// checks that every key is translated.
 export const en = {
+  languageName: 'English',
+  switchLanguage: 'हिन्दी',
   appName: 'GharPlan',
   tagline: 'Plan a better house before you build it.',
   intro: 'Enter your plot and family needs. GharPlan draws three optimised layouts to scale, with furniture and a shareable plan. This is a concept layout, not a sanctioned drawing.',
@@ -125,14 +128,12 @@ export const en = {
     units: (label: string) => `Units: ${label}`,
     editRoom: (label: string) => `Edit ${label}`,
   },
-  errors: {
-    popupBlocked: 'Pop-up blocked. Allow pop-ups for this site and try again.',
-    badLength: 'Enter as 30\'-6" or 30.5 (feet)',
-    tooSmall: 'Plot is too small for this programme. Reduce rooms or enlarge the plot.',
+  plan: {
+    car: 'Car',
+    twoWheeler: '2W',
+    north: 'N',
   },
-};
-
-export const exportCopy = {
+  exportCopy: {
   title: 'GharPlan concept layout',
   projectName: 'Untitled plan',
   date: 'Date',
@@ -154,6 +155,12 @@ export const exportCopy = {
   exportPdf: 'Export PDF',
   exportDxf: 'Export DXF',
   exportFailed: 'Export failed. Please try again.',
+  },
+  errors: {
+    popupBlocked: 'Pop-up blocked. Allow pop-ups for this site and try again.',
+    badLength: 'Enter as 30\'-6" or 30.5 (feet)',
+    tooSmall: 'Plot is too small for this programme. Reduce rooms or enlarge the plot.',
+  },
 };
 
 export type Strings = typeof en;

@@ -5,9 +5,10 @@ import * as Print from 'expo-print';
 import * as Sharing from 'expo-sharing';
 import * as FileSystem from 'expo-file-system';
 import { buildPlanPageHtml } from '../render/planHtml';
+import type { PlanOptions } from '../render';
 import { layoutToDxf } from '../engine/export/dxf';
 import type { Layout, PlotInput, Unit } from '../engine';
-import { exportCopy, en as t } from './strings';
+import type { Strings } from './strings';
 
 export function projectName(input: PlotInput): string {
   return `${input.width}x${input.depth} ${input.facing}, ${input.bhk}BHK`;
@@ -21,8 +22,15 @@ function fileBase(layout: Layout): string {
   return `gharplan-${layout.id}`;
 }
 
-export function pdfHtml(layout: Layout, input: PlotInput, unit: Unit): string {
-  return buildPlanPageHtml({ layout, input, unit, copy: exportCopy, date: today(), projectName: projectName(input) });
+/** Plan drawing options in the current language: translated labels and room names. */
+export function planOptionsFor(t: Strings): Partial<PlanOptions> {
+  return { labels: t.plan, roomLabels: t.roomNames };
+}
+
+export function pdfHtml(layout: Layout, input: PlotInput, unit: Unit, t: Strings): string {
+  return buildPlanPageHtml({
+    layout, input, unit, copy: t.exportCopy, date: today(), projectName: projectName(input), planOptions: planOptionsFor(t),
+  });
 }
 
 function webDownload(name: string, mime: string, content: string) {
@@ -35,8 +43,8 @@ function webDownload(name: string, mime: string, content: string) {
   setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
 
-export async function exportPdf(layout: Layout, input: PlotInput, unit: Unit): Promise<void> {
-  const html = pdfHtml(layout, input, unit);
+export async function exportPdf(layout: Layout, input: PlotInput, unit: Unit, t: Strings): Promise<void> {
+  const html = pdfHtml(layout, input, unit, t);
   if (Platform.OS === 'web') {
     const w = window.open('', '_blank');
     if (!w) throw new Error(t.errors.popupBlocked);

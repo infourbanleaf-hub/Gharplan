@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { ActivityIndicator, Pressable, SafeAreaView, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { ACCEPTANCE_CASES, defaultInput, generatePlans, type GenerationResult, type PlotInput, type Unit } from './engine';
-import { en as t } from './ui/strings';
+import { useT, useLanguage, LanguageProvider } from './ui/i18n';
 import { colors, space, touch } from './ui/theme';
 import { Button, Card, Hint, ProgressBar, Title } from './ui/components';
 import { BuildingStep, PlotStep, PrefsStep, RoomsStep } from './ui/wizard';
@@ -15,6 +15,16 @@ const STEP_COUNT = 4;
 const RESTARTS = 600;
 
 export default function App() {
+  return (
+    <LanguageProvider>
+      <AppInner />
+    </LanguageProvider>
+  );
+}
+
+function AppInner() {
+  const t = useT();
+  const { lang, setLang } = useLanguage();
   const [screen, setScreen] = useState<Screen>('welcome');
   const [step, setStep] = useState(0);
   const [input, setInput] = useState<PlotInput>(defaultInput());
@@ -74,6 +84,13 @@ export default function App() {
   if (screen === 'welcome') {
     body = (
       <ScrollView contentContainerStyle={styles.pad}>
+        <Pressable
+          onPress={() => setLang(lang === 'en' ? 'hi' : 'en')}
+          accessibilityRole="button"
+          style={styles.langBtn}
+        >
+          <Text style={styles.langText}>{t.switchLanguage}</Text>
+        </Pressable>
         <Text style={styles.appName}>{t.appName}</Text>
         <Text style={styles.tagline}>{t.tagline}</Text>
         <Hint>{t.intro}</Hint>
@@ -155,6 +172,7 @@ export default function App() {
 }
 
 function UnitToggle({ unit, onChange, compact }: { unit: Unit; onChange: (u: Unit) => void; compact?: boolean }) {
+  const t = useT();
   const label = unit === 'ftin' ? 'ft-in' : 'm';
   return (
     <Pressable
@@ -172,6 +190,8 @@ const styles = StyleSheet.create({
   root: { flex: 1, width: '100%', backgroundColor: colors.bg },
   flex: { flex: 1 },
   pad: { padding: space.md, paddingBottom: space.lg * 2 },
+  langBtn: { alignSelf: 'flex-end', minHeight: touch, justifyContent: 'center', paddingHorizontal: space.md },
+  langText: { fontSize: 16, fontWeight: '600', color: colors.primary },
   appName: { fontSize: 32, fontWeight: '800', color: colors.primary, marginTop: space.md },
   tagline: { fontSize: 18, color: colors.ink, marginBottom: space.sm },
   planName: { fontSize: 17, fontWeight: '700', color: colors.ink },

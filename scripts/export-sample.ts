@@ -5,7 +5,8 @@ import { join } from 'node:path';
 import { generatePlans, ACCEPTANCE_CASES } from '../engine';
 import { layoutToDxf } from '../engine/export/dxf';
 import { buildPlanPageHtml } from '../render/planHtml';
-import { exportCopy } from '../ui/strings';
+import { en } from '../ui/strings';
+const exportCopy = en.exportCopy;
 
 const idx = Number(process.argv[2] ?? 0);
 const outDir = process.argv[3] ?? 'exports';

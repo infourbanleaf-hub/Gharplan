@@ -4,7 +4,8 @@ import { areaStatement } from '../engine/export/areas';
 import { layoutToDxf } from '../engine/export/dxf';
 import { wallPieces } from '../engine/export/walls';
 import { buildPlanPageHtml } from '../render/planHtml';
-import { exportCopy } from '../ui/strings';
+import { en } from '../ui/strings';
+const exportCopy = en.exportCopy;
 
 let layout: Layout;
 beforeAll(() => {

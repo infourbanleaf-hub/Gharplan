@@ -16,7 +16,7 @@ function itemToSvg(it: Item): string {
     }
     case 'text': {
       const weight = it.weight === 'bold' ? ' font-weight="700"' : '';
-      return `<text x="${it.x.toFixed(2)}" y="${it.y.toFixed(2)}" font-size="${it.size}" fill="${it.fill}" text-anchor="${it.anchor}" font-family="Roboto, Arial, sans-serif"${weight} data-layer="${it.layer}">${esc(it.text)}</text>`;
+      return `<text x="${it.x.toFixed(2)}" y="${it.y.toFixed(2)}" font-size="${it.size}" fill="${it.fill}" text-anchor="${it.anchor}" font-family="Roboto, 'Noto Sans', 'Noto Sans Devanagari', Arial, sans-serif"${weight} data-layer="${it.layer}">${esc(it.text)}</text>`;
     }
   }
 }
