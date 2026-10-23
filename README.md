@@ -125,6 +125,19 @@ space with bedrooms opening off it on both sides). That needs a template that fi
 at 10 ft or more, and the living room is the hard part on 27-30 ft plots. This needs agreement
 before building.
 
+## Room sizes
+
+Each room grows at most 2 ft beyond its default in each dimension. Toilets, utility, store and
+puja are service rooms, and they are held tighter:
+- In the search, a service room over its limit adds a strong cost, and habitable rooms add a smaller one.
+- In the final choice, plans with every service room within its limit are preferred. A plan with an
+  oversized service room is used only if there aren't enough compliant ones.
+
+Result on the acceptance cases with 600 restarts: toilets have a median of 45 sq ft. Case 4 (40x60,
+4BHK) still has one plan with a 146 sq ft toilet, because too few compliant plans were found. With
+2000 restarts that case gives three plans with toilets within about 2 ft of their limits, but the
+search takes about three times as long.
+
 ## Soft scores (ranked, shown on the scorecard)
 
 Room size, cross-ventilation, circulation (passages under 12% of built-up), kitchen next to

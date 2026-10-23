@@ -1,7 +1,7 @@
 import roomDefaults from '../config/room-defaults.json';
 import { buildFrame, compassOfPoint } from './frame';
 import { buildProgram } from './program';
-import { evaluate, doorWidthOf, isToilet, type Candidate, type Evaluation } from './evaluate';
+import { evaluate, doorWidthOf, isToilet, SERVICE_ROOM_KINDS, type Candidate, type Evaluation } from './evaluate';
 import { exteriorSides, sharedEdge, type SharedEdge } from './geometry';
 import { mulberry32, shuffle } from './rng';
 import { preferenceScore, PREFERRED_ZONES } from './vastu';
@@ -22,6 +22,8 @@ const PASSAGE_PROBABILITY = 0.2;
 const MIN_SLICE_FT = 3;
 const MIN_DISTINCT = 0.35;
 const FURNITURE_SHORTLIST = 60;
+/** Feet a room may grow beyond its default in each dimension (matches the room limits in engine/edit.ts). */
+export const MAX_GROWTH_FT = 2;
 /** Search restarts for each fixed plan template. */
 const TEMPLATE_RESTARTS = 80;
 const MISSING_FURNITURE_COST = 6;
@@ -92,7 +94,7 @@ export function generatePlans(rawInput: PlotInput, opts: GenerateOptions = {}): 
     const cand = toCandidate(leaves, frame);
     const ev = evaluate(cand, frame, input, program.rooms);
     const invalid = ev.violations.length > 0 ? INFEASIBLE_COST : 0;
-    return { cost: invalid + ev.violations.length * 5 + vastuDeficit(ev, input), cand, ev };
+    return { cost: invalid + ev.violations.length * 5 + vastuDeficit(ev, input) + oversizeCost(cand, program.rooms), cand, ev };
   };
 
   for (let r = 0; r < restarts; r++) {
@@ -124,14 +126,18 @@ export function generatePlans(rawInput: PlotInput, opts: GenerateOptions = {}): 
   const shortlist = valid.slice(0, FURNITURE_SHORTLIST).map((v, i) => {
     const build = (shifts: Map<string, number>) => assembleLayout(`L${i + 1}`, v.seed, v.cand, v.ev, frame, input, program.rooms, warnings, shifts);
     const layout = fitDoors(build, [...v.ev.parent.keys()]);
-    const adjusted = v.ev.total - MISSING_FURNITURE_COST * layout.missingFurniture;
+    const adjusted = v.ev.total - MISSING_FURNITURE_COST * layout.missingFurniture - oversizeCost(v.cand, program.rooms);
     return { layout, cand: v.cand, adjusted };
   });
   shortlist.sort((a, b) => b.adjusted - a.adjusted);
+  // Prefer plans where no toilet or service room exceeds its maximum; fall back to the rest only if needed.
+  const sizeOk = (c: Candidate) => serviceOversize(c, program.rooms) === 0;
   const chosen: typeof shortlist = [];
-  for (const v of shortlist) {
-    if (chosen.length >= count) break;
-    if (chosen.every((p) => difference(p.cand, v.cand) >= MIN_DISTINCT)) chosen.push(v);
+  for (const pool of [shortlist.filter((v) => sizeOk(v.cand)), shortlist.filter((v) => !sizeOk(v.cand))]) {
+    for (const v of pool) {
+      if (chosen.length >= count) break;
+      if (chosen.every((p) => difference(p.cand, v.cand) >= MIN_DISTINCT)) chosen.push(v);
+    }
   }
   if (chosen.length === 0) {
     errors.push('No valid layout found for these inputs. Try relaxing Vastu to Moderate, or change room choices.');
@@ -262,6 +268,41 @@ function fitDoors(build: (shifts: Map<string, number>) => Layout, childIds: stri
     }
   }
   return best;
+}
+
+/** Feet that rooms exceed their maximum size, summed. Discourages oversized rooms without blocking a plan. */
+export function oversizeCost(cand: Candidate, specs: RoomSpec[]): number {
+  const byId = new Map(specs.map((x) => [x.id, x]));
+  let total = 0;
+  for (const r of cand.rooms) {
+    const sp = byId.get(r.id);
+    if (!sp) continue;
+    const maxW = sp.defW + MAX_GROWTH_FT;
+    const maxH = sp.defH + MAX_GROWTH_FT;
+    const over = Math.min(
+      Math.max(0, r.rect.w - maxW) + Math.max(0, r.rect.h - maxH),
+      Math.max(0, r.rect.w - maxH) + Math.max(0, r.rect.h - maxW),
+    );
+    total += over * (SERVICE_ROOM_KINDS.has(r.kind) ? 3 : 0.5);
+  }
+  return total;
+}
+
+/** Feet that toilets, utility, store and puja exceed their maximum (zero when all are within it). */
+export function serviceOversize(cand: Candidate, specs: RoomSpec[]): number {
+  const byId = new Map(specs.map((x) => [x.id, x]));
+  let total = 0;
+  for (const r of cand.rooms) {
+    const sp = byId.get(r.id);
+    if (!sp || !SERVICE_ROOM_KINDS.has(r.kind)) continue;
+    const maxW = sp.defW + MAX_GROWTH_FT;
+    const maxH = sp.defH + MAX_GROWTH_FT;
+    total += Math.min(
+      Math.max(0, r.rect.w - maxW) + Math.max(0, r.rect.h - maxH),
+      Math.max(0, r.rect.w - maxH) + Math.max(0, r.rect.h - maxW),
+    );
+  }
+  return total;
 }
 
 /** Strict Vastu: how far rooms fall short of the 0.6 preference, summed. Zero when not strict. */

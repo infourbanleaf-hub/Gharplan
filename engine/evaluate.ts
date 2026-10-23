@@ -13,6 +13,7 @@ const DOOR_CLEARANCE = 0.5;
 const VASTU_FLAG_BELOW = 0.6;
 /** A hall or passage may not be a corridor: no longer than this, nor more than this many times its width. */
 const MAX_PASSAGE_FT = 16;
+export const SERVICE_ROOM_KINDS = new Set(['attachedToilet', 'commonToilet', 'utility', 'store', 'puja']);
 const MAX_PASSAGE_RATIO = 5;
 const MAIN_DOOR_FT = 3.5;
 
@@ -255,10 +256,19 @@ function scoreCard(
   const circRatio = passage / builtUp;
 
   // Sizes: each room against its default area, capped at 1.
+  // Sizes: each room against its default area (capped at 1), less a penalty for growing past its maximum.
   const sized = rooms.filter((r) => r.kind !== 'passage');
   const sizes = sized.reduce((s, r) => {
     const spec = specById.get(r.id)!;
-    return s + Math.min(1, rectArea(r.rect) / (spec.defW * spec.defH));
+    const maxW = spec.defW + 2;
+    const maxH = spec.defH + 2;
+    const over = Math.min(
+      Math.max(0, r.rect.w - maxW) + Math.max(0, r.rect.h - maxH),
+      Math.max(0, r.rect.w - maxH) + Math.max(0, r.rect.h - maxW),
+    );
+    // Service rooms are penalised harder for growing: spare space should go to the habitable rooms.
+    const serviceRoom = SERVICE_ROOM_KINDS.has(r.kind);
+    return s + Math.min(1, rectArea(r.rect) / (spec.defW * spec.defH)) * Math.max(0, 1 - over / (serviceRoom ? 1.5 : 4));
   }, 0) / Math.max(1, sized.length);
 
   // Ventilation: habitable rooms and toilets want openings on two different walls.
