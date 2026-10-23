@@ -5,7 +5,8 @@ import { localToWorld } from '../engine/frame';
 import { formatLength, type Unit } from '../engine/units';
 import type { Frame, Layout, Opening, PlacedRoom, Rect, Side } from '../engine/types';
 
-export type Pt = { x: number; y: number };
+import { openingGeometry, rectPoints, roomWalls, wallStrip, WALL_EXTERNAL_FT, WALL_INTERNAL_FT, type Pt } from './geometry';
+export type { Pt };
 
 export type Item =
   | { kind: 'polygon'; points: Pt[]; fill: string; stroke?: string; strokeWidth?: number; dash?: string; layer: Layer }
@@ -41,8 +42,7 @@ export const DEFAULT_PLAN_OPTIONS: PlanOptions = {
   scale: 12,
 };
 
-export const WALL_EXTERNAL_FT = 0.75;
-export const WALL_INTERNAL_FT = 0.375;
+export { WALL_EXTERNAL_FT, WALL_INTERNAL_FT };
 export const COLORS = {
   wall: '#3b3f45',
   wallGap: '#ffffff',
@@ -65,7 +65,6 @@ const ROOM_FILL: Record<string, string> = {
   study: '#eef0d8', store: '#eeeeee', utility: '#e3f1f1', stair: '#f2f2f2', passage: '#ffffff',
 };
 
-const ARC_SEGMENTS = 18;
 
 /** Maps local feet to screen units. North is up, origin at the top-left of the drawing. */
 export function makeMapper(frame: Frame, scale: number, margin: number) {
@@ -84,31 +83,6 @@ export function makeMapper(frame: Frame, scale: number, margin: number) {
   };
   // North-up: north is the screen top, so the north arrow is fixed in the corner.
   return { local, extent, minX, maxY };
-}
-
-function rectPoints(r: Rect): Pt[] {
-  return [{ x: r.x, y: r.y }, { x: r.x + r.w, y: r.y }, { x: r.x + r.w, y: r.y + r.h }, { x: r.x, y: r.y + r.h }];
-}
-
-/** Four corners of a wall strip centred on a rectangle edge, extended by half a wall at each end. */
-function wallStrip(side: Side, r: Rect, t: number): Pt[] {
-  const h = t / 2;
-  switch (side) {
-    case 'front':
-      return [{ x: r.x - h, y: r.y - h }, { x: r.x + r.w + h, y: r.y - h }, { x: r.x + r.w + h, y: r.y + h }, { x: r.x - h, y: r.y + h }];
-    case 'back':
-      return [{ x: r.x - h, y: r.y + r.h - h }, { x: r.x + r.w + h, y: r.y + r.h - h }, { x: r.x + r.w + h, y: r.y + r.h + h }, { x: r.x - h, y: r.y + r.h + h }];
-    case 'left':
-      return [{ x: r.x - h, y: r.y - h }, { x: r.x + h, y: r.y - h }, { x: r.x + h, y: r.y + r.h + h }, { x: r.x - h, y: r.y + r.h + h }];
-    case 'right':
-      return [{ x: r.x + r.w - h, y: r.y - h }, { x: r.x + r.w + h, y: r.y - h }, { x: r.x + r.w + h, y: r.y + r.h + h }, { x: r.x + r.w - h, y: r.y + r.h + h }];
-  }
-}
-
-/** Walls of a room: each side is external (outer wall) or internal (partition). */
-function roomWalls(r: PlacedRoom): { side: Side; t: number }[] {
-  const sides: Side[] = ['front', 'back', 'left', 'right'];
-  return sides.map((side) => ({ side, t: r.exteriorSides.includes(side) ? WALL_EXTERNAL_FT : WALL_INTERNAL_FT }));
 }
 
 function ftin(ft: number, unit: Unit): string {
@@ -219,50 +193,11 @@ export function planScene(layout: Layout, opts: Partial<PlanOptions> = {}): Scen
 
 /** Draws one opening onto the scene. */
 function drawOpening(op: Opening, layout: Layout, local: (p: Pt) => Pt, items: Item[]) {
-  const a = op.a;
-  const b = op.b;
-  const len = Math.hypot(b.x - a.x, b.y - a.y);
-  const d = { x: (b.x - a.x) / len, y: (b.y - a.y) / len };
-  const n = { x: -d.y, y: d.x };
-  const mid = { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 };
-  // Wall thickness: the opening sits in the outer wall if it touches the outside.
-  const outer = op.kind === 'mainDoor' || op.kind === 'window' || op.kind === 'ventilator';
-  const t = outer ? WALL_EXTERNAL_FT : WALL_INTERNAL_FT;
-  const h = t / 2;
-  const gap = [
-    { x: a.x + n.x * h, y: a.y + n.y * h },
-    { x: b.x + n.x * h, y: b.y + n.y * h },
-    { x: b.x - n.x * h, y: b.y - n.y * h },
-    { x: a.x - n.x * h, y: a.y - n.y * h },
-  ];
-  items.push({ kind: 'polygon', points: gap.map(local), fill: COLORS.wallGap, layer: 'openings' });
-
-  if (op.kind === 'window' || op.kind === 'ventilator') {
-    for (const k of [-0.33, 0, 0.33]) {
-      const off = { x: n.x * h * k * 2, y: n.y * h * k * 2 };
-      items.push({ kind: 'polyline', points: [{ x: a.x + off.x, y: a.y + off.y }, { x: b.x + off.x, y: b.y + off.y }].map(local), stroke: COLORS.window, strokeWidth: 1.2, layer: 'openings' });
-    }
-    return;
+  const g = openingGeometry(op, layout);
+  items.push({ kind: 'polygon', points: g.gap.map(local), fill: COLORS.wallGap, layer: 'openings' });
+  for (const line of g.glazing) {
+    items.push({ kind: 'polyline', points: line.map(local), stroke: COLORS.window, strokeWidth: 1.2, layer: 'openings' });
   }
-  if (op.kind === 'opening') return; // open kitchen: gap only
-
-  // Door leaf hinged at `a`, swinging into the room the door opens into.
-  const room = layout.rooms.find((r) => r.id === op.roomId);
-  const roomCentre = room ? { x: room.rect.x + room.rect.w / 2, y: room.rect.y + room.rect.h / 2 } : mid;
-  const side = (roomCentre.x - mid.x) * n.x + (roomCentre.y - mid.y) * n.y >= 0 ? 1 : -1;
-  const leafDir = { x: n.x * side, y: n.y * side };
-  const leafEnd = { x: a.x + leafDir.x * op.width, y: a.y + leafDir.y * op.width };
-  items.push({ kind: 'polyline', points: [a, leafEnd].map(local), stroke: COLORS.door, strokeWidth: 1.4, layer: 'openings' });
-  // Arc from the far end of the opening to the leaf tip, centred on the hinge
-  const start = Math.atan2(b.y - a.y, b.x - a.x);
-  const end = Math.atan2(leafDir.y, leafDir.x);
-  let sweep = end - start;
-  while (sweep > Math.PI) sweep -= 2 * Math.PI;
-  while (sweep < -Math.PI) sweep += 2 * Math.PI;
-  const arc: Pt[] = [];
-  for (let i = 0; i <= ARC_SEGMENTS; i++) {
-    const ang = start + (sweep * i) / ARC_SEGMENTS;
-    arc.push({ x: a.x + Math.cos(ang) * op.width, y: a.y + Math.sin(ang) * op.width });
-  }
-  items.push({ kind: 'polyline', points: arc.map(local), stroke: COLORS.door, strokeWidth: 0.8, dash: '3 2', layer: 'openings' });
+  if (g.leaf) items.push({ kind: 'polyline', points: g.leaf.map(local), stroke: COLORS.door, strokeWidth: 1.4, layer: 'openings' });
+  if (g.arc) items.push({ kind: 'polyline', points: g.arc.map(local), stroke: COLORS.door, strokeWidth: 0.8, dash: '3 2', layer: 'openings' });
 }

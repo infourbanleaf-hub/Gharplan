@@ -1,8 +1,9 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { forwardRef, useEffect, useImperativeHandle, useMemo, useRef, useState } from 'react';
 import { PanResponder, StyleSheet, View } from 'react-native';
 import Svg, { Polygon, Polyline, Text as SvgText } from 'react-native-svg';
 import type { Layout } from '../engine';
 import { planScene, type Item, type PlanOptions } from '../render';
+import type { View as RNView } from 'react-native';
 
 interface Props {
   layout: Layout;
@@ -17,7 +18,9 @@ const MAX_ZOOM = 5;
  * Draws the plan scene with react-native-svg. Pinch zooms and one-finger drag pans.
  * The viewBox is the window onto the drawing, so zoom and pan never redraw the scene.
  */
-export function PlanView({ layout, options, resetKey }: Props) {
+export const PlanView = forwardRef<RNView, Props>(function PlanView({ layout, options, resetKey }, ref) {
+  const wrap = useRef<View>(null);
+  useImperativeHandle(ref, () => wrap.current as unknown as RNView);
   const scene = useMemo(() => planScene(layout, options), [layout, options]);
   const [size, setSize] = useState({ w: 1, h: 1 });
   const [zoom, setZoom] = useState(1);
@@ -90,6 +93,7 @@ export function PlanView({ layout, options, resetKey }: Props) {
 
   return (
     <View
+      ref={wrap}
       style={styles.wrap}
       onLayout={(e) => setSize({ w: e.nativeEvent.layout.width, h: e.nativeEvent.layout.height })}
       {...responder.panHandlers}
@@ -99,7 +103,7 @@ export function PlanView({ layout, options, resetKey }: Props) {
       </Svg>
     </View>
   );
-}
+});
 
 function distance(touches: { pageX: number; pageY: number }[]): number {
   const [a, b] = touches;

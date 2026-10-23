@@ -108,6 +108,8 @@ export const en = {
     issues: 'Needs attention',
     noIssues: 'All rules pass.',
     close: 'Close',
+    exportTitle: 'Export',
+    exportHint: 'Exports the layout as you have edited it. The PDF has the plan, the area statement and the disclaimer.',
     scorecard: 'Scorecard',
     disclaimer: 'Concept layout only. Not a sanctioned or structural drawing. Verify bye-laws with the local authority and consult a qualified engineer before construction.',
   },
@@ -115,6 +117,29 @@ export const en = {
     badLength: 'Enter as 30\'-6" or 30.5 (feet)',
     tooSmall: 'Plot is too small for this programme. Reduce rooms or enlarge the plot.',
   },
+};
+
+export const exportCopy = {
+  title: 'GharPlan concept layout',
+  projectName: 'Untitled plan',
+  date: 'Date',
+  plot: 'Plot',
+  facing: 'Facing',
+  floors: 'Floors',
+  roomWise: 'Room',
+  room: 'Room',
+  carpet: 'Carpet area',
+  total: 'Total carpet area',
+  builtUp: 'Built-up area',
+  coverage: 'Ground coverage',
+  efficiency: 'Space efficiency',
+  circulation: 'Circulation',
+  layout: 'Layout',
+  disclaimer: 'Concept layout only. Not a sanctioned or structural drawing. Verify bye-laws with the local authority and consult a qualified engineer before construction.',
+  share: 'Share image',
+  exportPdf: 'Export PDF',
+  exportDxf: 'Export DXF',
+  exportFailed: 'Export failed. Please try again.',
 };
 
 export type Strings = typeof en;

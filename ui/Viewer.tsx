@@ -1,10 +1,13 @@
-import React, { useMemo, useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import React, { useMemo, useRef, useState } from 'react';
+import { Alert, Pressable, ScrollView, StyleSheet, Text, View, type View as RNView } from 'react-native';
+import { captureRef } from 'react-native-view-shot';
 import { applyRoomEdits, formatArea, formatLength, roomLimits, validateLayout, type Layout, type PlotInput, type RoomEdit, type Unit } from '../engine';
-import { en as t } from './strings';
+import { en as t, exportCopy } from './strings';
 import { colors, space, touch } from './theme';
 import { Button, ChipGroup, Hint, LengthField, Title, ToggleRow } from './components';
 import { PlanView } from './PlanView';
+import { exportDxf, exportPdf, shareImage } from './export';
+import { sceneToSvg, planScene } from '../render';
 
 interface Props {
   layout: Layout;
@@ -20,6 +23,8 @@ export function ViewerScreen({ layout, input, unit, onUnit }: Props) {
   const [resetKey, setResetKey] = useState(0);
   const [edits, setEdits] = useState<Record<string, RoomEdit>>({});
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
+  const planRef = useRef<RNView>(null);
 
   const edited = useMemo(() => applyRoomEdits(layout, input, edits), [layout, input, edits]);
   const issues = useMemo(() => validateLayout(edited, input), [edited, input]);
@@ -32,10 +37,21 @@ export function ViewerScreen({ layout, input, unit, onUnit }: Props) {
   const editable = edited.rooms.filter((r) => r.kind !== 'passage' && roomLimits(input, r.id));
   const selected = selectedId ? edited.rooms.find((r) => r.id === selectedId) ?? null : null;
 
+  const runExport = async (action: () => Promise<void>) => {
+    setBusy(true);
+    try {
+      await action();
+    } catch {
+      Alert.alert(exportCopy.exportFailed);
+    } finally {
+      setBusy(false);
+    }
+  };
+
   return (
     <View style={styles.screen}>
       <View style={styles.planArea}>
-        <PlanView layout={edited} options={options} resetKey={resetKey} />
+        <PlanView ref={planRef} layout={edited} options={options} resetKey={resetKey} />
         <Text style={styles.zoomHint}>{t.viewer.zoomHint}</Text>
       </View>
       <ScrollView style={styles.panel} contentContainerStyle={styles.panelPad}>
@@ -93,6 +109,21 @@ export function ViewerScreen({ layout, input, unit, onUnit }: Props) {
             }}
           />
         ) : null}
+
+        <Title>{t.viewer.exportTitle}</Title>
+        <Hint>{t.viewer.exportHint}</Hint>
+        <Button label={exportCopy.exportPdf} disabled={busy} onPress={() => runExport(() => exportPdf(edited, input, unit))} />
+        <Button label={exportCopy.exportDxf} kind="ghost" disabled={busy} onPress={() => runExport(() => exportDxf(edited))} />
+        <Button
+          label={exportCopy.share}
+          kind="ghost"
+          disabled={busy}
+          onPress={() => runExport(() => shareImage(
+            edited,
+            () => captureRef(planRef, { format: 'png', quality: 1, result: 'tmpfile' }),
+            sceneToSvg(planScene(edited, options)),
+          ))}
+        />
 
         <Title>{t.viewer.scorecard}</Title>
         <Stat label={t.results.carpet} value={formatArea(s.carpetArea, unit)} />

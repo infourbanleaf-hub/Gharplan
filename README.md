@@ -7,7 +7,8 @@ project at the repo root. Engine, renderer and UI share one codebase.
 - Step 2: plan renderer (`render/`)
 - Step 3: input wizard, results and plan viewer (`App.tsx`, `ui/`)
 - Step 4: furniture auto-placement (`engine/furniture.ts`)
-- Step 5: basic room editing and re-validation (`engine/edit.ts`, `ui/Viewer.tsx`). Export comes later.
+- Step 5: basic room editing and re-validation (`engine/edit.ts`, `ui/Viewer.tsx`)
+- Step 6: export (`render/planHtml.ts` for the PDF page, `engine/export/` for DXF and the area statement, `ui/export.ts` for the actions)
 
 ## Layout
 
@@ -56,6 +57,22 @@ that no longer sit on a shared wall, windows that lost their outer wall, and fur
 longer fits. Each problem is listed in red and the room is outlined on the plan.
 
 Edits are not optimised: the app points out what to fix, and the user moves the rest.
+
+## Export
+
+- **PDF:** one A4 landscape page with a title block, the plan with furniture and dimensions,
+  the room-wise carpet area statement with totals, built-up area, coverage, efficiency, and the
+  disclaimer. On Android it is printed with expo-print and shared; on the web the browser print
+  dialog opens, and "Save as PDF" gives the file.
+- **DXF:** AutoCAD R12, millimetres, north-up, on named layers (PLOT, SETBACK, ROOMS, WALLS,
+  DOORS, WINDOWS, FURNITURE, PARKING, TEXT, DIMENSIONS, NORTH). Walls are cut at doors and windows.
+  Checked with ezdxf: no audit errors.
+- **Image:** the plan as PNG on Android (captured from the screen). On the web the vector plan is
+  downloaded as SVG instead.
+- **DWG:** not produced. DWG is proprietary; DXF opens in AutoCAD and most CAD tools. A DWG step
+  needs a converter such as the ODA File Converter, run on the server or the desktop.
+
+Exports use the layout as edited in the viewer.
 
 ## Furniture
 
