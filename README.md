@@ -110,31 +110,20 @@ frontage, and that doesn't fit the minimum bedroom sizes on the 30 ft plots. A h
 wider plots (34-40 ft in the references) or a different generator, such as templates for each
 plot width. That is the next design step.
 
-## Plan templates
+## Corridors
 
-`engine/templates.ts` holds two fixed arrangements built from the reference plans:
+A passage or hall may not be a corridor: it can be at most 16 ft long and no more than five times
+its width. Layouts that break this are rejected, so a long strip like the 3.5 ft x 38 ft hall
+in the first template review can't be chosen.
 
-- **Hall-side** (27-30 ft frontage, deep plots): public rooms stacked on one side, a 3.5 ft hall
-  running the full depth, and bedrooms stacked on the other side, each with its toilet.
-- **Hall-across** (narrow plots, about 22 ft): living and dining in a front band, a hall across
-  the plot, and two bedrooms side by side in a back band.
+The fixed plan templates from the reference plans were removed, because their halls were all
+corridors under this rule. Halls are now optional and short. Bedrooms usually open off the living
+room, which the hall score counts as access.
 
-Each restart builds one template, then the search tunes room sizes inside it. Rooms that are
-switched off are removed from the template. Templates only fit when the depth after setbacks is
-large enough. Under the brief's default setbacks the templates fit only the deepest plot in the
-test cases (40x60). With front and rear setbacks of 4 ft, which is what the reference plans use,
-they fit the 22x60, 27x54 and 30x50 plots.
-
-Measured with 4 ft setbacks (`scripts/measure-widths.ts`): every bedroom opens from the hall,
-dining sits next to living, no bedroom faces the road, circulation is 5.6-11.2%, and about one
-furniture item is left unplaced per layout (it was 5-6 before).
-
-Open points:
-- Setbacks: the brief's table gives 10 ft front and 5 ft rear on these plots. Confirm the setback
-  values for the trial, since they decide whether the hall plans fit.
-- Parking: the car rule needs a 9 ft front setback, so with 4 ft setbacks no car is placed.
-  The references park the car beside the house or inside the building.
-- Wet rooms: the common toilet does not yet sit beside the bedroom toilets on the 27 and 30 ft plans.
+Next design step: make the living room the hub, as in the 27x54 reference (a central living
+space with bedrooms opening off it on both sides). That needs a template that fits the living room
+at 10 ft or more, and the living room is the hard part on 27-30 ft plots. This needs agreement
+before building.
 
 ## Soft scores (ranked, shown on the scorecard)
 

@@ -11,6 +11,9 @@ const WINDOW_FT = 4;
 const VENT_FT = 2;
 const DOOR_CLEARANCE = 0.5;
 const VASTU_FLAG_BELOW = 0.6;
+/** A hall or passage may not be a corridor: no longer than this, nor more than this many times its width. */
+const MAX_PASSAGE_FT = 16;
+const MAX_PASSAGE_RATIO = 5;
 const MAIN_DOOR_FT = 3.5;
 
 const BEDROOM_KINDS = new Set(['master', 'bedroom', 'guest']);
@@ -74,6 +77,16 @@ export function evaluate(
   for (let i = 0; i < rooms.length; i++) {
     for (let j = i + 1; j < rooms.length; j++) {
       if (overlaps(rooms[i].rect, rooms[j].rect)) violations.push(`${rooms[i].label} overlaps ${rooms[j].label}`);
+    }
+  }
+
+  // 1b. No corridors: a passage that is too long, or too narrow for its length, is rejected.
+  for (const r of rooms) {
+    if (r.kind !== 'passage') continue;
+    const long = Math.max(r.rect.w, r.rect.h);
+    const short = Math.min(r.rect.w, r.rect.h);
+    if (long > MAX_PASSAGE_FT + 1e-6 || long / short > MAX_PASSAGE_RATIO + 1e-6) {
+      violations.push(`Passage is a corridor (${long.toFixed(0)} ft by ${short.toFixed(1)} ft); a hall must be ${MAX_PASSAGE_FT} ft or less`);
     }
   }
 

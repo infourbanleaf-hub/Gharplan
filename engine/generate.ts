@@ -8,7 +8,6 @@ import { preferenceScore, PREFERRED_ZONES } from './vastu';
 import { compassVector } from './frame';
 import { parkingFor } from './parking';
 import { validatePlotInput } from './limits';
-import { TEMPLATES, buildTemplateTree } from './templates';
 import { placeFurniture } from './furniture';
 import type {
   Frame, GenerationResult, Layout, Opening, ParkingSlot, PlacedRoom, PlotInput, Rect, RoomSpec, Side,
@@ -116,20 +115,6 @@ export function generatePlans(rawInput: PlotInput, opts: GenerateOptions = {}): 
     }
     if (cur.cand && cur.ev && cur.ev.valid) {
       valid.push({ cand: cur.cand, ev: cur.ev, seed: structSeed });
-    }
-  }
-
-  // Fixed plan templates: the same arrangement, with room sizes tuned by the search.
-  for (const tpl of TEMPLATES) {
-    for (let k = 0; k < TEMPLATE_RESTARTS; k++) {
-      const tree = buildTemplateTree(tpl.tree, items);
-      if (!tree) break;
-      const structSeed = Math.floor(rand() * 2 ** 31);
-      const { leaves, pen } = optimise(tree, frame.interior, mulberry32(structSeed), penalty);
-      if (pen > 0) continue;
-      const cand = toCandidate(leaves, frame);
-      const ev = evaluate(cand, frame, input, program.rooms);
-      if (ev.valid) valid.push({ cand, ev, seed: structSeed });
     }
   }
 
