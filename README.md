@@ -137,6 +137,27 @@ improvement if testers need strict compliance.
 - First floor is not generated; the staircase is reserved on the ground floor.
 - Parking is placed at one end of the front setback, car long side along the frontage.
 
+## Android
+
+Checked here: `npx expo export --platform android` builds the Hermes bundle with no errors, and
+`react-native` is aligned to the version this Expo SDK expects. Not checked here: running on a
+device. The sandbox has no Android SDK, no emulator, and no network path to Google's download
+host, so the first device run is still to do.
+
+To try it on a phone:
+
+1. Install Expo Go from the Play Store, then run `npm run android` (or `npx expo start`) on the
+   same network. Scan the QR code. Expo Go can run most of the app; the PDF print and the image
+   share are the features to check.
+2. For a standalone APK: `npx eas build -p android --profile preview` (needs an Expo account).
+   The profile is in `eas.json`.
+
+Things to check on the device:
+- Pinch to zoom and one-finger pan on the plan (PanResponder with two touches).
+- Feet-inches entry with the keyboard (`30'-6"`).
+- The PDF export opens the system print or share sheet, and the DXF and PNG share through it.
+- The room list in the viewer and the red issue list after a resize.
+
 ## Run
 
 ```
