@@ -21,11 +21,19 @@ export interface Scene {
   items: Item[];
 }
 
+export interface PlanLabels {
+  car: string;
+  twoWheeler: string;
+  north: string;
+}
+
 export interface PlanOptions {
   unit: Unit;
   showSetbacks: boolean;
   showDimensions: boolean;
   showFurniture: boolean;
+  /** Text for the parking and north labels. */
+  labels: PlanLabels;
   /** Room to outline in the accent colour (the one being edited). */
   selectedRoomId?: string;
   /** Rooms with validation issues, outlined in red. */
@@ -39,6 +47,7 @@ export const DEFAULT_PLAN_OPTIONS: PlanOptions = {
   showSetbacks: true,
   showDimensions: true,
   showFurniture: true,
+  labels: { car: 'Car', twoWheeler: '2W', north: 'N' },
   scale: 12,
 };
 
@@ -128,7 +137,7 @@ export function planScene(layout: Layout, opts: Partial<PlanOptions> = {}): Scen
   for (const p of layout.parking) {
     poly(rectPoints(p.rect), COLORS.parkingFill, 'parking', { stroke: COLORS.parking, strokeWidth: 1 });
     const c = { x: p.rect.x + p.rect.w / 2, y: p.rect.y + p.rect.h / 2 };
-    text(c, p.kind === 'car' ? 'Car' : '2W', 9, COLORS.text, 'parking');
+    text(c, p.kind === 'car' ? o.labels.car : o.labels.twoWheeler, 9, COLORS.text, 'parking');
   }
 
   // 4. Furniture: thin grey outlines. Assumed sizes are dashed so they can be checked.
@@ -186,7 +195,7 @@ export function planScene(layout: Layout, opts: Partial<PlanOptions> = {}): Scen
   const naBase = local({ x: frame.width + 9, y: frame.depth - 7 });
   items.push({ kind: 'polyline', points: [naBase, na], stroke: '#000', strokeWidth: 2, layer: 'north' });
   items.push({ kind: 'polygon', points: [na, { x: na.x - 5, y: na.y + 12 }, { x: na.x + 5, y: na.y + 12 }], fill: '#000', layer: 'north' });
-  items.push({ kind: 'text', x: na.x, y: na.y - 6, text: 'N', size: 14, fill: '#000', anchor: 'middle', weight: 'bold', layer: 'north' });
+  items.push({ kind: 'text', x: na.x, y: na.y - 6, text: o.labels.north, size: 14, fill: '#000', anchor: 'middle', weight: 'bold', layer: 'north' });
 
   return { width: extent.width, height: extent.height, items };
 }

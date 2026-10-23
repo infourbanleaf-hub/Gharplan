@@ -7,7 +7,7 @@ import * as FileSystem from 'expo-file-system';
 import { buildPlanPageHtml } from '../render/planHtml';
 import { layoutToDxf } from '../engine/export/dxf';
 import type { Layout, PlotInput, Unit } from '../engine';
-import { exportCopy } from './strings';
+import { exportCopy, en as t } from './strings';
 
 export function projectName(input: PlotInput): string {
   return `${input.width}x${input.depth} ${input.facing}, ${input.bhk}BHK`;
@@ -39,7 +39,7 @@ export async function exportPdf(layout: Layout, input: PlotInput, unit: Unit): P
   const html = pdfHtml(layout, input, unit);
   if (Platform.OS === 'web') {
     const w = window.open('', '_blank');
-    if (!w) throw new Error('Pop-up blocked');
+    if (!w) throw new Error(t.errors.popupBlocked);
     w.document.write(html);
     w.document.close();
     w.focus();

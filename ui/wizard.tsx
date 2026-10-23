@@ -70,13 +70,13 @@ export function BuildingStep({ input, setInput }: StepProps) {
       />
       <Label>{t.building.cars}</Label>
       <ChipGroup
-        options={[{ value: 0 as const, label: 'None' }, { value: 1 as const, label: '1' }]}
+        options={[{ value: 0 as const, label: t.options.none }, { value: 1 as const, label: '1' }]}
         value={input.parking.cars}
         onChange={(v) => setInput({ ...input, parking: { ...input.parking, cars: v } })}
       />
       <Label>{t.building.twoWheelers}</Label>
       <ChipGroup
-        options={[{ value: 0 as const, label: 'None' }, { value: 1 as const, label: '1' }, { value: 2 as const, label: '2' }]}
+        options={[{ value: 0 as const, label: t.options.none }, { value: 1 as const, label: '1' }, { value: 2 as const, label: '2' }]}
         value={input.parking.twoWheelers}
         onChange={(v) => setInput({ ...input, parking: { ...input.parking, twoWheelers: v } })}
       />
@@ -91,11 +91,7 @@ export function BuildingStep({ input, setInput }: StepProps) {
 }
 
 const ROOM_KINDS: RoomKind[] = ['living', 'dining', 'kitchen', 'master', 'bedroom', 'attachedToilet', 'commonToilet', 'puja', 'study', 'guest', 'store', 'utility'];
-const ROOM_NAMES: Partial<Record<RoomKind, string>> = {
-  living: 'Living', dining: 'Dining', kitchen: 'Kitchen', master: 'Master bedroom', bedroom: 'Bedroom',
-  attachedToilet: 'Attached toilet', commonToilet: 'Common toilet', puja: 'Puja', study: 'Study', guest: 'Guest bedroom',
-  store: 'Store', utility: 'Utility / wash',
-};
+const ROOM_NAMES = t.roomNames as Partial<Record<RoomKind, string>>;
 
 export function RoomsStep({ input, setInput, unit }: StepProps) {
   const [showSizes, setShowSizes] = useState(false);

@@ -157,7 +157,7 @@ function RoomEditor({
   const [h, setH] = useState(currentH);
   const fmt = (ft: number) => formatLength(ft, unit);
   return (
-    <View style={styles.editor} accessibilityLabel={`Edit ${label}`}>
+    <View style={styles.editor} accessibilityLabel={t.a11y.editRoom(label)}>
       <Text style={styles.editorTitle}>{label}</Text>
       <Hint>{t.viewer.limits(`${fmt(limits.minW)} x ${fmt(limits.minH)}`, `${fmt(limits.maxW)} x ${fmt(limits.maxH)}`)}</Hint>
       <LengthField key={`w-${roomId}`} label={t.viewer.width} valueFt={w} unit={unit} invalidText={t.errors.badLength} onChange={setW} />

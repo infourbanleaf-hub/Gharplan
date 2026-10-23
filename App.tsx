@@ -160,7 +160,7 @@ function UnitToggle({ unit, onChange, compact }: { unit: Unit; onChange: (u: Uni
     <Pressable
       onPress={() => onChange(unit === 'ftin' ? 'm' : 'ftin')}
       accessibilityRole="button"
-      accessibilityLabel={`Units: ${label}`}
+      accessibilityLabel={t.a11y.units(label)}
       style={[styles.unitBtn, compact && { minHeight: 36 }]}
     >
       <Text style={styles.unitText}>{label}</Text>

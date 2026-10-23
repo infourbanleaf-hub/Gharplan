@@ -21,6 +21,7 @@ export interface ExportCopy {
   circulation: string;
   disclaimer: string;
   layout: string;
+  sqFt: string;
 }
 
 export interface PlanPageInput {
@@ -39,7 +40,7 @@ export function buildPlanPageHtml(p: PlanPageInput): string {
   const { layout, input, unit, copy } = p;
   const svg = sceneToSvg(planScene(layout, { unit, showSetbacks: true, showDimensions: true, showFurniture: true }));
   const stmt = areaStatement(layout);
-  const area = (sqft: number) => (unit === 'm' ? formatArea(sqft, 'm') : `${Math.round(sqft)} sq ft`);
+  const area = (sqft: number) => (unit === 'm' ? formatArea(sqft, 'm') : `${Math.round(sqft)} ${copy.sqFt}`);
   const rows = stmt.rows
     .map((r) => `<tr><td>${esc(r.label)}</td><td class="num">${esc(area(r.carpetSqFt))}</td></tr>`)
     .join('');

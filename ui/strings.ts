@@ -115,7 +115,18 @@ export const en = {
     scorecard: 'Scorecard',
     disclaimer: 'Concept layout only. Not a sanctioned or structural drawing. Verify bye-laws with the local authority and consult a qualified engineer before construction.',
   },
+  options: { none: 'None' },
+  roomNames: {
+    living: 'Living', dining: 'Dining', kitchen: 'Kitchen', master: 'Master bedroom', bedroom: 'Bedroom',
+    attachedToilet: 'Attached toilet', commonToilet: 'Common toilet', puja: 'Puja', study: 'Study', guest: 'Guest bedroom',
+    store: 'Store', utility: 'Utility / wash',
+  },
+  a11y: {
+    units: (label: string) => `Units: ${label}`,
+    editRoom: (label: string) => `Edit ${label}`,
+  },
   errors: {
+    popupBlocked: 'Pop-up blocked. Allow pop-ups for this site and try again.',
     badLength: 'Enter as 30\'-6" or 30.5 (feet)',
     tooSmall: 'Plot is too small for this programme. Reduce rooms or enlarge the plot.',
   },
@@ -137,6 +148,7 @@ export const exportCopy = {
   efficiency: 'Space efficiency',
   circulation: 'Circulation',
   layout: 'Layout',
+  sqFt: 'sq ft',
   disclaimer: 'Concept layout only. Not a sanctioned or structural drawing. Verify bye-laws with the local authority and consult a qualified engineer before construction.',
   share: 'Share image',
   exportPdf: 'Export PDF',
