@@ -112,9 +112,10 @@ plot width. That is the next design step.
 
 ## Corridors
 
-A passage or hall may not be a corridor: it can be at most 16 ft long and no more than five times
+A passage or hall may not be a corridor: it can be at most 20 ft long and no more than six times
 its width. Layouts that break this are rejected, so a long strip like the 3.5 ft x 38 ft hall
-in the first template review can't be chosen.
+in the first template review can't be chosen. The 20 ft limit follows the Groot Parys passages
+(4-7 m long); see RULES.md.
 
 The fixed plan templates from the reference plans were removed, because their halls were all
 corridors under this rule. Halls are now optional and short. Bedrooms usually open off the living
@@ -126,6 +127,10 @@ at 10 ft or more, and the living room is the hard part on 27-30 ft plots. This n
 before building.
 
 ## Room sizes
+
+Defaults are the reference sizes in `config/room-defaults.json`. Minimums are the floors the
+search may shrink to; they were kept at the earlier values because the reference-size minimums
+(for example living 14x15 ft) leave no feasible layout on a 30x40 plot. See RULES.md.
 
 Each room grows at most 2 ft beyond its default in each dimension. Toilets, utility, store and
 puja are service rooms, and they are held tighter:

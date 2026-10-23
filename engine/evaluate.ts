@@ -12,9 +12,9 @@ const VENT_FT = 2;
 const DOOR_CLEARANCE = 0.5;
 const VASTU_FLAG_BELOW = 0.6;
 /** A hall or passage may not be a corridor: no longer than this, nor more than this many times its width. */
-const MAX_PASSAGE_FT = 16;
+const MAX_PASSAGE_FT = 20;
 export const SERVICE_ROOM_KINDS = new Set(['attachedToilet', 'commonToilet', 'utility', 'store', 'puja']);
-const MAX_PASSAGE_RATIO = 5;
+const MAX_PASSAGE_RATIO = 6;
 const MAIN_DOOR_FT = 3.5;
 
 const BEDROOM_KINDS = new Set(['master', 'bedroom', 'guest']);
