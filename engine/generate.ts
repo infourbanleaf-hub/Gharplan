@@ -8,6 +8,7 @@ import { preferenceScore, PREFERRED_ZONES } from './vastu';
 import { compassVector } from './frame';
 import { parkingFor } from './parking';
 import { validatePlotInput } from './limits';
+import { TEMPLATES, buildTemplateTree } from './templates';
 import { placeFurniture } from './furniture';
 import type {
   Frame, GenerationResult, Layout, Opening, ParkingSlot, PlacedRoom, PlotInput, Rect, RoomSpec, Side,
@@ -22,6 +23,8 @@ const PASSAGE_PROBABILITY = 0.2;
 const MIN_SLICE_FT = 3;
 const MIN_DISTINCT = 0.35;
 const FURNITURE_SHORTLIST = 60;
+/** Search restarts for each fixed plan template. */
+const TEMPLATE_RESTARTS = 80;
 const MISSING_FURNITURE_COST = 6;
 
 export interface GenerateOptions {
@@ -116,6 +119,20 @@ export function generatePlans(rawInput: PlotInput, opts: GenerateOptions = {}): 
     }
   }
 
+  // Fixed plan templates: the same arrangement, with room sizes tuned by the search.
+  for (const tpl of TEMPLATES) {
+    for (let k = 0; k < TEMPLATE_RESTARTS; k++) {
+      const tree = buildTemplateTree(tpl.tree, items);
+      if (!tree) break;
+      const structSeed = Math.floor(rand() * 2 ** 31);
+      const { leaves, pen } = optimise(tree, frame.interior, mulberry32(structSeed), penalty);
+      if (pen > 0) continue;
+      const cand = toCandidate(leaves, frame);
+      const ev = evaluate(cand, frame, input, program.rooms);
+      if (ev.valid) valid.push({ cand, ev, seed: structSeed });
+    }
+  }
+
   valid.sort((a, b) => b.ev.total - a.ev.total);
 
   // Furniture fit decides between close candidates: missing items cost points.
@@ -161,6 +178,8 @@ export interface LeafNode {
 export interface SplitNode {
   ratios: number[];
   longBias: boolean;
+  /** Fixed cut axis (template layouts). Overrides longBias when set. */
+  axis?: 'x' | 'y';
   passage: boolean;
   children: TreeNode[];
 }
@@ -202,15 +221,17 @@ export function realize(node: TreeNode, rect: Rect, out: Leaf[], penaltyOf: Leaf
     out.push({ rect, spec: node.spec });
     return penaltyOf(node.spec, rect);
   }
-  const alongX = rect.w >= rect.h ? node.longBias : !node.longBias;
+  const alongX = node.axis ? node.axis === 'x' : rect.w >= rect.h ? node.longBias : !node.longBias;
   const span = (alongX ? rect.w : rect.h) - (node.passage ? PASSAGE_FT : 0);
   const shares = [...node.ratios, 1 - node.ratios.reduce((a, b) => a + b, 0)];
   let pen = 0;
   let offset = 0;
   const last = node.children.length - 1;
+  let used = 0; // room strips only; the passage is not part of `span`
   for (let g = 0; g < node.children.length; g++) {
     // Sizes are multiples of 1/16 ft so shared walls line up exactly; the last strip takes the remainder.
-    let size = g === last ? span - offset : quantise(shares[g] * span);
+    let size = g === last ? span - used : quantise(shares[g] * span);
+    used += size;
     if (size < MIN_SLICE_FT) {
       pen += (MIN_SLICE_FT - size) * 10;
       size = Math.max(size, 0.5);
