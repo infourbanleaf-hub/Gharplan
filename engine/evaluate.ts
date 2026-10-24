@@ -52,6 +52,10 @@ export function doorable(a: PlacedRoom, b: PlacedRoom, widthOf: (r: PlacedRoom) 
   return edge.length >= width + DOOR_CLEARANCE;
 }
 
+/** The living room may grow at most this far beyond its default in each dimension. */
+const LIVING_MAX_GROWTH_FT = 2;
+/** Score added for each envelope corner a niche cuts away, so stepped outlines can beat rectangles. */
+const STEP_BONUS = 2;
 /** Toilets may be at most this multiple of their default area. */
 const TOILET_MAX_AREA_FACTOR = 1.5;
 
@@ -69,6 +73,19 @@ export function doorPermitted(a: PlacedRoom, b: PlacedRoom): boolean {
     return other.kind === 'living' || other.kind === 'passage';
   }
   return true;
+}
+
+/** Envelope corners that no room reaches: each one is a niche cut into the outline. */
+export function uncoveredCorners(rooms: PlacedRoom[], env: Rect): number {
+  const corners = [
+    { x: env.x, y: env.y },
+    { x: env.x + env.w, y: env.y },
+    { x: env.x, y: env.y + env.h },
+    { x: env.x + env.w, y: env.y + env.h },
+  ];
+  const covers = (r: Rect, p: { x: number; y: number }) =>
+    p.x >= r.x - 1e-6 && p.x <= r.x + r.w + 1e-6 && p.y >= r.y - 1e-6 && p.y <= r.y + r.h + 1e-6;
+  return corners.filter((p) => !rooms.some((r) => covers(r.rect, p))).length;
 }
 
 export function doorWidthOf(r: PlacedRoom, specs: Map<string, RoomSpec>): number {
@@ -217,6 +234,18 @@ export function evaluate(
     violations.push('Dining room must share a wall with the living room');
   }
 
+  // 5b2. The living room stays within default plus LIVING_MAX_GROWTH_FT in each dimension
+  const livingSpec = livingHard ? specById.get(livingHard.id) : undefined;
+  if (livingHard && livingSpec) {
+    const long = Math.max(livingHard.rect.w, livingHard.rect.h);
+    const short = Math.min(livingHard.rect.w, livingHard.rect.h);
+    const maxLong = Math.max(livingSpec.defW, livingSpec.defH) + LIVING_MAX_GROWTH_FT;
+    const maxShort = Math.min(livingSpec.defW, livingSpec.defH) + LIVING_MAX_GROWTH_FT;
+    if (long > maxLong + 1e-6 || short > maxShort + 1e-6) {
+      violations.push(`Living room is larger than its default plus ${LIVING_MAX_GROWTH_FT} ft`);
+    }
+  }
+
   // 5c. Toilets stay within their size cap
   for (const r of rooms) {
     if (r.kind !== 'attachedToilet' && r.kind !== 'commonToilet') continue;
@@ -236,7 +265,7 @@ export function evaluate(
     });
 
   const scorecard = scoreCard(cand, frame, input, specById, exterior, vastuRules, parent);
-  const total = scorecard.total;
+  const total = scorecard.total + STEP_BONUS * uncoveredCorners(rooms, frame.interior);
   return { valid: violations.length === 0, violations, vastuFlags, scorecard, vastuRules, total, parent };
 }
 
