@@ -109,11 +109,18 @@ export function generatePlans(rawInput: PlotInput, opts: GenerateOptions = {}): 
     const { leaves, pen } = forced
       ? layoutTwoBlocks(order, frame.interior, structRand, chainRand, penalty)
       : optimise(buildTree(order, structRand), frame.interior, chainRand, penalty);
-    if (pen > 0) return { cost: INFEASIBLE_COST + pen, cand: null as Candidate | null, ev: null as Evaluation | null };
+    // Only minimum sizes and aspect are hard here; toilet oversize is a soft cost (see leafPenalty).
+    const hard = leaves.reduce((sum, leaf) => sum + (leaf.spec ? hardPenalty(leaf.spec, leaf.rect) : 0), 0);
+    if (hard > 0) return { cost: INFEASIBLE_COST + hard, cand: null as Candidate | null, ev: null as Evaluation | null };
+    const toiletSoft = leaves.reduce((sum, leaf) => sum + (leaf.spec ? toiletOversize(leaf.spec, leaf.rect) : 0), 0);
     const cand = toCandidate(leaves, frame);
     const ev = evaluate(cand, frame, input, program.rooms);
     const invalid = ev.violations.length > 0 ? INFEASIBLE_COST : 0;
-    return { cost: invalid + ev.violations.length * 5 + vastuDeficit(ev, input) + oversizeCost(cand, program.rooms), cand, ev };
+    return {
+      cost: invalid + ev.violations.length * 5 + vastuDeficit(ev, input) + oversizeCost(cand, program.rooms) + TOILET_OVERSIZE_WEIGHT * toiletSoft,
+      cand,
+      ev,
+    };
   };
 
   for (let r = 0; r < restarts; r++) {
@@ -487,7 +494,24 @@ export function vastuPenalty(_frame: Frame, _input: PlotInput): LeafPenalty {
 }
 
 /** How far a room is from its minimum size and 1:2 aspect limit, in feet. */
-function leafPenalty(spec: RoomSpec, rect: Rect): number {
+/** Toilets may grow at most this far beyond their default in each dimension (the evaluator's hard limit). */
+const TOILET_GROWTH_FT = 1;
+/** Feet a toilet is over its size limit, times this, is added to the penalty. */
+const TOILET_OVERSIZE_WEIGHT = 1;
+
+/** Feet a toilet is over its size limit (default plus TOILET_GROWTH_FT each way). */
+function toiletOversize(spec: RoomSpec, rect: Rect): number {
+  if (!isToilet(spec.kind)) return 0;
+  const short = Math.min(rect.w, rect.h);
+  const long = Math.max(rect.w, rect.h);
+  return (
+    Math.max(0, long - (Math.max(spec.defW, spec.defH) + TOILET_GROWTH_FT)) +
+    Math.max(0, short - (Math.min(spec.defW, spec.defH) + TOILET_GROWTH_FT))
+  );
+}
+
+/** Minimum sizes and aspect: these are hard, so a layout with any of them is not searched further. */
+function hardPenalty(spec: RoomSpec, rect: Rect): number {
   const short = Math.min(rect.w, rect.h);
   const long = Math.max(rect.w, rect.h);
   const minShort = Math.min(spec.minW, spec.minH);
@@ -498,6 +522,11 @@ function leafPenalty(spec: RoomSpec, rect: Rect): number {
     Math.max(0, minLong - long) * 3 +
     Math.max(0, aspect - roomDefaults.maxAspect) * 10
   );
+}
+
+/** The optimiser's cost for one room: hard limits plus the soft toilet-oversize penalty. */
+function leafPenalty(spec: RoomSpec, rect: Rect): number {
+  return hardPenalty(spec, rect) + toiletOversize(spec, rect) * TOILET_OVERSIZE_WEIGHT;
 }
 
 function collectSplits(node: TreeNode, out: SplitNode[] = []): SplitNode[] {
