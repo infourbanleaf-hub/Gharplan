@@ -309,7 +309,10 @@ export function layoutTwoBlocks(
 
   const roadRelaxed: LeafPenalty = (spec, rect) =>
     penaltyOf({ ...spec, minW: spec.minW - WING_MIN_RELAX_FT, minH: spec.minH - WING_MIN_RELAX_FT }, rect);
-  const roadPart = optimise(stripsAlongX(buildTree([kitchen, living], structRand)), roadRect, chainRand, roadRelaxed);
+  // Living goes on the road-row side that touches the wing, so the wing's bedrooms can open onto it.
+  const wingOnLeft = blocks.wing.x === env.x;
+  const roadItems = wingOnLeft ? [living, kitchen] : [kitchen, living];
+  const roadPart = optimise(stripsAlongX(buildTree(roadItems, structRand)), roadRect, chainRand, roadRelaxed);
   const roadLeaves = roadPart.leaves.map((leaf) =>
     leaf.spec && ROAD_KINDS.has(leaf.spec.kind) ? { ...leaf, minRelaxFt: WING_MIN_RELAX_FT } : leaf,
   );
