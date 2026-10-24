@@ -348,19 +348,24 @@ export function layoutTwoBlocks(
   });
   const roomArea = (it: Item) => minArea(it, allowanceOf(it.spec));
   const overflow: Item[] = [];
-  // Order the wing rooms so the larger ones are placed first, then give each to the segment with the most room left.
-  const placing = [...wing].sort((a, b) => roomArea(b) - roomArea(a));
-  for (const it of placing) {
+  // A bedroom and its attached toilets go in one unit, so the toilets reach the entrance through their bedroom.
+  const attachedIds = new Set(wing.filter((it) => it.spec.attachedTo).map((it) => it.spec.id));
+  const units: Item[][] = wing
+    .filter((it) => !(it.spec.kind === 'attachedToilet' && attachedIds.has(it.spec.attachedTo ?? '')))
+    .map((it) => [it, ...wing.filter((t) => t.spec.attachedTo === it.spec.id)]);
+  const unitArea = (u: Item[]) => u.reduce((sum, it) => sum + roomArea(it), 0);
+  // Larger units first; each goes to the segment with the most room left.
+  for (const unit of units.sort((a, b) => unitArea(b) - unitArea(a))) {
     let best: (typeof segs)[number] | null = null;
+    const cap = (seg: (typeof segs)[number]) => seg.roomsRect.w * seg.roomsRect.h * WING_FIT_SHARE - seg.used;
     for (const seg of segs) {
-      const cap = seg.roomsRect.w * seg.roomsRect.h * WING_FIT_SHARE - seg.used;
-      if (cap >= roomArea(it) && (!best || cap > best.roomsRect.w * best.roomsRect.h * WING_FIT_SHARE - best.used)) best = seg;
+      if (cap(seg) >= unitArea(unit) && (!best || cap(seg) > cap(best))) best = seg;
     }
     if (best) {
-      best.items.push(it);
-      best.used += roomArea(it);
+      best.items.push(...unit);
+      best.used += unitArea(unit);
     } else {
-      overflow.push(it);
+      overflow.push(...unit);
     }
   }
   back = [...back, ...overflow];
