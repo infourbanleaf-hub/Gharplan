@@ -329,37 +329,56 @@ export function layoutTwoBlocks(
     parts.push(backPart);
   }
 
-  // Wing hall: a short passage (at most WING_HALL_MAX_FT) along the side facing the front block. The
-  // wing rooms sit beside it, so every one opens onto the hall and the hall shares a wall with living.
-  // Rooms that do not fit beside the hall move to the back row (study and guest first).
-  const hallLen = Math.min(WING_HALL_MAX_FT, blocks.wing.h);
-  const hallRect = wingOnLeft
-    ? { x: blocks.wing.x + blocks.wing.w - WING_HALL_FT, y: blocks.wing.y, w: WING_HALL_FT, h: hallLen }
-    : { x: blocks.wing.x, y: blocks.wing.y, w: WING_HALL_FT, h: hallLen };
-  const roomsRect = wingOnLeft
-    ? { x: blocks.wing.x, y: blocks.wing.y, w: blocks.wing.w - WING_HALL_FT, h: hallLen }
-    : { x: blocks.wing.x + WING_HALL_FT, y: blocks.wing.y, w: blocks.wing.w - WING_HALL_FT, h: hallLen };
-  const roomArea = (rs: Item[]) => rs.reduce((sum, it) => sum + minArea(it, allowanceOf(it.spec)), 0);
-  const fitWing = [...wing];
+  // Wing halls: the wing is cut into segments of at most WING_HALL_MAX_FT. Each segment has a short hall
+  // along the side facing the front block, with its wing rooms beside it. Halls join end to end, and
+  // the first one shares a wall with living, so every bedroom is reached through its own hall.
+  // Rooms that do not fit in any segment move to the back row (study and guest first).
+  const segCount = Math.max(1, Math.ceil(blocks.wing.h / WING_HALL_MAX_FT));
+  const segLen = blocks.wing.h / segCount;
+  const segs = Array.from({ length: segCount }, (_, i) => {
+    const y = blocks.wing.y + i * segLen;
+    const hallRect = wingOnLeft
+      ? { x: blocks.wing.x + blocks.wing.w - WING_HALL_FT, y, w: WING_HALL_FT, h: segLen }
+      : { x: blocks.wing.x, y, w: WING_HALL_FT, h: segLen };
+    const roomsRect = wingOnLeft
+      ? { x: blocks.wing.x, y, w: blocks.wing.w - WING_HALL_FT, h: segLen }
+      : { x: blocks.wing.x + WING_HALL_FT, y, w: blocks.wing.w - WING_HALL_FT, h: segLen };
+    return { hallRect, roomsRect, items: [] as Item[], used: 0 };
+  });
+  const roomArea = (it: Item) => minArea(it, allowanceOf(it.spec));
   const overflow: Item[] = [];
-  for (const kind of ['study', 'guest', 'bedroom'] as const) {
-    while (roomArea(fitWing) > roomsRect.w * roomsRect.h * WING_FIT_SHARE) {
-      const idx = fitWing.findIndex((it) => it.spec.kind === kind);
-      if (idx < 0) break;
-      overflow.push(...fitWing.splice(idx, 1));
+  // Order the wing rooms so the larger ones are placed first, then give each to the segment with the most room left.
+  const placing = [...wing].sort((a, b) => roomArea(b) - roomArea(a));
+  for (const it of placing) {
+    let best: (typeof segs)[number] | null = null;
+    for (const seg of segs) {
+      const cap = seg.roomsRect.w * seg.roomsRect.h * WING_FIT_SHARE - seg.used;
+      if (cap >= roomArea(it) && (!best || cap > best.roomsRect.w * best.roomsRect.h * WING_FIT_SHARE - best.used)) best = seg;
+    }
+    if (best) {
+      best.items.push(it);
+      best.used += roomArea(it);
+    } else {
+      overflow.push(it);
     }
   }
-  wing = fitWing;
   back = [...back, ...overflow];
-  const wingPart = optimise(buildTree(wing, structRand), roomsRect, chainRand, (spec, rect) =>
-    penaltyOf({ ...spec, minW: spec.minW - allowanceOf(spec), minH: spec.minH - allowanceOf(spec) }, rect),
-  );
-  const wingLeaves = wingPart.leaves.map((leaf) =>
-    leaf.spec && allowanceOf(leaf.spec) > 0 ? { ...leaf, minRelaxFt: WING_MIN_RELAX_FT } : leaf,
-  );
+  const wingLeaves: Leaf[] = [];
+  let wingPen = 0;
+  for (const seg of segs) {
+    if (seg.items.length === 0) continue;
+    const part = optimise(buildTree(seg.items, structRand), seg.roomsRect, chainRand, (spec, rect) =>
+      penaltyOf({ ...spec, minW: spec.minW - allowanceOf(spec), minH: spec.minH - allowanceOf(spec) }, rect),
+    );
+    wingPen += part.pen;
+    for (const leaf of part.leaves) {
+      wingLeaves.push(leaf.spec && allowanceOf(leaf.spec) > 0 ? { ...leaf, minRelaxFt: WING_MIN_RELAX_FT } : leaf);
+    }
+    wingLeaves.push({ rect: seg.hallRect });
+  }
   return {
-    leaves: [...parts.flatMap((x) => x.leaves), ...wingLeaves, { rect: hallRect }],
-    pen: parts.reduce((sum, x) => sum + x.pen, 0) + wingPart.pen,
+    leaves: [...parts.flatMap((x) => x.leaves), ...wingLeaves],
+    pen: parts.reduce((sum, x) => sum + x.pen, 0) + wingPen,
   };
 }
 
