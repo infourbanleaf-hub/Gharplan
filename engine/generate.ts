@@ -236,7 +236,7 @@ function splitWing(items: Item[]): { front: Item[]; wing: Item[] } {
   return { front: items.slice(0, items.length - wing.length), wing };
 }
 
-/** Rooms that must open onto the road: living and kitchen sit in the road band. */
+/** Rooms that must open onto the road: living and kitchen sit along the road frontage. */
 const ROAD_KINDS = new Set(['living', 'kitchen']);
 
 /** Forces every strip of a tree to run along x, so each leaf keeps the full height of its band. */
@@ -248,10 +248,10 @@ function stripsAlongX(node: TreeNode): TreeNode {
 }
 
 /**
- * Zone-aware two-block layout. The front block is cut into a road band (living and kitchen, both
- * touching the road) and a back band (dining, common toilet, utility and the rest), so dining sits
- * above the living room. The wing holds the bedrooms and their toilets. Each band is optimised on
- * its own rectangle.
+ * Road-side arrangement. The front block is three full-depth columns along the road: the kitchen,
+ * the living room, and a back column (dining, common toilet, utility). Every road-side room touches
+ * the road, and living shares a wall with both the kitchen and the dining room. The wing holds the
+ * bedrooms and their toilets. Each part is optimised on its own rectangle.
  */
 export function layoutTwoBlocks(
   items: Item[],
@@ -260,50 +260,55 @@ export function layoutTwoBlocks(
   chainRand: () => number,
   penaltyOf: LeafPenalty,
 ): { leaves: Leaf[]; pen: number } {
-  const road = items.filter((it) => ROAD_KINDS.has(it.spec.kind));
+  const kitchen = items.find((it) => it.spec.kind === 'kitchen');
+  const living = items.find((it) => it.spec.kind === 'living');
   const wing = items.filter((it) => WING_KINDS.has(it.spec.kind));
-  const back = items.filter((it) => !ROAD_KINDS.has(it.spec.kind) && !WING_KINDS.has(it.spec.kind));
-  if (road.length === 0 || wing.length === 0) return { leaves: [], pen: INFEASIBLE_COST };
+  const back = items.filter((it) => it !== kitchen && it !== living && !WING_KINDS.has(it.spec.kind));
+  if (!kitchen || !living || wing.length === 0) return { leaves: [], pen: INFEASIBLE_COST };
 
   // Size the blocks by the minimum areas each must hold (the wing's allowance included).
   const minArea = (it: Item, relax: number) => Math.max(0, it.spec.minW - relax) * Math.max(0, it.spec.minH - relax);
-  const needRoad = road.reduce((s, it) => s + minArea(it, 0), 0);
+  const needRoad = [kitchen, living].reduce((s, it) => s + minArea(it, WING_MIN_RELAX_FT), 0);
   const needBack = back.reduce((s, it) => s + minArea(it, 0), 0);
-  const needWing = wing.reduce((s, it) => s + minArea(it, WING_MIN_RELAX_FT), 0);
+  const needWing = wing.reduce((s, it) => s + minArea(it, allowanceOf(it.spec)), 0);
   const wingShare = needWing / (needRoad + needBack + needWing);
-  const roadW = road.reduce((s, it) => s + Math.max(0, it.spec.minW - WING_MIN_RELAX_FT), 0) + 1;
+  const roadW = [kitchen, living].reduce((s, it) => s + Math.max(0, it.spec.minW - WING_MIN_RELAX_FT), 0) + 1;
   const blocks = footprintBlocks(env, wingShare, structRand, roadW);
-  // The back band takes the depth its rooms need; the road band keeps the rest.
-  const backH = back.length === 0 ? 0 : Math.max(BACK_BAND_MIN_FT, ...back.map((it) => it.spec.minH));
-  const roadH = blocks.front.h - backH;
-  const roadRect = { ...blocks.front, h: roadH };
-  const backRect = { ...blocks.front, y: blocks.front.y + roadH, h: blocks.front.h - roadH };
 
-  // Toilets keep their full minimum sizes; the other wing rooms get the allowance.
-  const allowanceOf = (spec: RoomSpec) => (isToilet(spec.kind) ? 0 : WING_MIN_RELAX_FT);
-  const relaxed: LeafPenalty = (spec, rect) =>
-    penaltyOf({ ...spec, minW: spec.minW - allowanceOf(spec), minH: spec.minH - allowanceOf(spec) }, rect);
-
-  // Living and kitchen get the same 2 ft allowance as the wing, so the wing can take the width.
-  const roadRelaxed: LeafPenalty = (spec, rect) =>
-    penaltyOf({ ...spec, minW: spec.minW - WING_MIN_RELAX_FT, minH: spec.minH - WING_MIN_RELAX_FT }, rect);
-  const roadPart = optimise(stripsAlongX(buildTree(road, structRand)), roadRect, chainRand, roadRelaxed);
-  const a = {
-    ...roadPart,
-    leaves: roadPart.leaves.map((leaf) => (leaf.spec ? { ...leaf, minRelaxFt: WING_MIN_RELAX_FT } : leaf)),
+  // Front block: kitchen | living | back column, split along x so each keeps the full road frontage.
+  const backTree = back.length > 0 ? buildTree(back, structRand) : null;
+  const children: TreeNode[] = [{ spec: kitchen.spec }, { spec: living.spec }];
+  if (backTree) children.push(backTree);
+  const frontTree: SplitNode = {
+    ratios: children.length === 3 ? [0.3, 0.3] : [0.45],
+    longBias: true,
+    axis: 'x',
+    passage: false,
+    children,
   };
-  const parts = [a];
-  if (back.length > 0) {
-    parts.push(optimise(stripsAlongX(buildTree(back, structRand)), backRect, chainRand, penaltyOf));
-  }
-  const b = optimise(buildTree(wing, structRand), blocks.wing, chainRand, relaxed);
+  const roadPenalty: LeafPenalty = (spec, rect) =>
+    penaltyOf(
+      ROAD_KINDS.has(spec.kind) ? { ...spec, minW: spec.minW - WING_MIN_RELAX_FT, minH: spec.minH - WING_MIN_RELAX_FT } : spec,
+      rect,
+    );
+  const front = optimise(frontTree, blocks.front, chainRand, roadPenalty);
+  const frontLeaves = front.leaves.map((leaf) =>
+    leaf.spec && ROAD_KINDS.has(leaf.spec.kind) ? { ...leaf, minRelaxFt: WING_MIN_RELAX_FT } : leaf,
+  );
+
+  const wingTree = buildTree(wing, structRand);
+  const b = optimise(wingTree, blocks.wing, chainRand, (spec, rect) =>
+    penaltyOf({ ...spec, minW: spec.minW - allowanceOf(spec), minH: spec.minH - allowanceOf(spec) }, rect),
+  );
   const wingLeaves = b.leaves.map((leaf) =>
     leaf.spec && allowanceOf(leaf.spec) > 0 ? { ...leaf, minRelaxFt: WING_MIN_RELAX_FT } : leaf,
   );
-  return {
-    leaves: [...parts.flatMap((x) => x.leaves), ...wingLeaves],
-    pen: parts.reduce((s, x) => s + x.pen, 0) + b.pen,
-  };
+  return { leaves: [...frontLeaves, ...wingLeaves], pen: front.pen + b.pen };
+}
+
+/** Wing rooms get the 2 ft minimum allowance, except toilets, which keep their full minimums. */
+function allowanceOf(spec: RoomSpec): number {
+  return isToilet(spec.kind) ? 0 : WING_MIN_RELAX_FT;
 }
 
 /** A cut of a rectangle into strips. `ratios` holds all but the last strip's share. */
