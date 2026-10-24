@@ -22,8 +22,8 @@ const PASSAGE_PROBABILITY = 0.2;
 const MIN_SLICE_FT = 3;
 const MIN_DISTINCT = 0.35;
 /** Share of boundary rooms that get a staggered edge, and the niche depths (ft) it can leave. */
-const STAGGER_PROBABILITY = 0.15;
-const STAGGER_DEPTHS_FT = [2, 3, 4, 5];
+const STAGGER_PROBABILITY = 0.35;
+const STAGGER_DEPTHS_FT = [3, 4, 5, 6];
 const FURNITURE_SHORTLIST = 60;
 /** Feet a room may grow beyond its default in each dimension (matches the room limits in engine/edit.ts). */
 export const MAX_GROWTH_FT = 2;
@@ -91,8 +91,10 @@ export function generatePlans(rawInput: PlotInput, opts: GenerateOptions = {}): 
   let sampled = 0;
 
   // Each restart is a short hill-climb over the room order. Cost = size penalty + hard violations.
-  const evaluateOrder = (order: Item[], structSeed: number, chainSeed: number) => {
-    const { leaves, pen } = optimise(buildTree(order, mulberry32(structSeed)), frame.interior, mulberry32(chainSeed), penalty);
+  const evaluateOrder = (order: Item[], structSeed: number, chainSeed: number, forced: boolean) => {
+    let tree = buildTree(order, mulberry32(structSeed));
+    if (forced) tree = forceStagger(tree, mulberry32(structSeed ^ 0x5bd1e995));
+    const { leaves, pen } = optimise(tree, frame.interior, mulberry32(chainSeed), penalty);
     if (pen > 0) return { cost: INFEASIBLE_COST + pen, cand: null as Candidate | null, ev: null as Evaluation | null };
     const cand = toCandidate(leaves, frame);
     const ev = evaluate(cand, frame, input, program.rooms);
@@ -106,13 +108,15 @@ export function generatePlans(rawInput: PlotInput, opts: GenerateOptions = {}): 
     const structSeed = Math.floor(restartRand() * 2 ** 31);
     const chainSeed = Math.floor(restartRand() * 2 ** 31);
     let order = zoned && restartRand() < 0.5 ? orderItemsZoned(items, frame, restartRand) : orderItems(items, restartRand);
-    let cur = evaluateOrder(order, structSeed, chainSeed);
+    // Every third restart steps the outline, so stepped plans are always among the candidates.
+    const forced = r % 3 === 0;
+    let cur = evaluateOrder(order, structSeed, chainSeed, forced);
     for (let step = 0; step < CHAIN_STEPS && cur.cost > 0; step++) {
       const next = order.slice();
       const i = Math.floor(restartRand() * next.length);
       const j = Math.floor(restartRand() * next.length);
       [next[i], next[j]] = [next[j], next[i]];
-      const trial = evaluateOrder(next, structSeed, chainSeed + step + 1);
+      const trial = evaluateOrder(next, structSeed, chainSeed + step + 1, forced);
       if (trial.cost <= cur.cost) {
         order = next;
         cur = trial;
@@ -141,6 +145,11 @@ export function generatePlans(rawInput: PlotInput, opts: GenerateOptions = {}): 
       if (chosen.length >= count) break;
       if (chosen.every((p) => difference(p.cand, v.cand) >= MIN_DISTINCT)) chosen.push(v);
     }
+  }
+  // Keep at least one plan with a stepped outline when one is valid, by swapping out the weakest pick.
+  const stepped = shortlist.find((v) => isStepped(v.cand, frame) && sizeOk(v.cand));
+  if (stepped && chosen.length === count && !chosen.some((v) => isStepped(v.cand, frame))) {
+    chosen[chosen.length - 1] = stepped;
   }
   if (chosen.length === 0) {
     errors.push('No valid layout found for these inputs. Try relaxing Vastu to Moderate, or change room choices.');
@@ -178,6 +187,28 @@ export interface LeafNode {
   stagger?: Stagger;
 }
 
+/** Adds a stagger to one strip of the root split, so the outline steps. */
+function forceStagger(tree: TreeNode, rand: () => number): TreeNode {
+  if (isLeaf(tree)) return tree;
+  const child = tree.children[Math.floor(rand() * tree.children.length)];
+  child.stagger = randomStagger(rand);
+  return tree;
+}
+
+/** True when the rooms (passage included) do not fill the building envelope, so the outline has a step. */
+export function isStepped(cand: Candidate, frame: Frame): boolean {
+  const covered = cand.rooms.reduce((sum, r) => sum + r.rect.w * r.rect.h, 0);
+  return Math.abs(frame.interior.w * frame.interior.h - covered) >= 1;
+}
+
+function randomStagger(rand: () => number): Stagger {
+  const sides: Stagger['side'][] = ['left', 'right', 'back'];
+  return {
+    side: sides[Math.floor(rand() * sides.length)],
+    ft: STAGGER_DEPTHS_FT[Math.floor(rand() * STAGGER_DEPTHS_FT.length)],
+  };
+}
+
 /** A cut of a rectangle into strips. `ratios` holds all but the last strip's share. */
 export interface SplitNode {
   ratios: number[];
@@ -186,6 +217,7 @@ export interface SplitNode {
   axis?: 'x' | 'y';
   passage: boolean;
   children: TreeNode[];
+  stagger?: Stagger;
 }
 
 export type TreeNode = LeafNode | SplitNode;
@@ -196,17 +228,7 @@ function isLeaf(n: TreeNode): n is LeafNode {
 
 /** Builds a random slicing structure over the ordered rooms. Sizes are set later by optimise(). */
 export function buildTree(items: Item[], rand: () => number): TreeNode {
-  if (items.length === 1) {
-    const leaf: LeafNode = { spec: items[0].spec };
-    if (rand() < STAGGER_PROBABILITY) {
-      const sides: Stagger['side'][] = ['left', 'right', 'back'];
-      leaf.stagger = {
-        side: sides[Math.floor(rand() * sides.length)],
-        ft: STAGGER_DEPTHS_FT[Math.floor(rand() * STAGGER_DEPTHS_FT.length)],
-      };
-    }
-    return leaf;
-  }
+  if (items.length === 1) return { spec: items[0].spec };
   const n = items.length;
   const groups = 2 + (n >= 3 && rand() < 0.5 ? 1 : 0);
   const cuts = pickCuts(items, groups, rand);
@@ -216,7 +238,10 @@ export function buildTree(items: Item[], rand: () => number): TreeNode {
   const children: TreeNode[] = [];
   for (let g = 0; g < groups; g++) {
     const part = items.slice(bounds[g], bounds[g + 1]);
-    children.push(buildTree(part, rand));
+    const child = buildTree(part, rand);
+    // A whole strip can be pulled in from the envelope, which steps the outline.
+    if (rand() < STAGGER_PROBABILITY) child.stagger = randomStagger(rand);
+    children.push(child);
     if (g < groups - 1) ratios.push(part.reduce((s2, it) => s2 + it.weight, 0) / total);
   }
   return {
@@ -238,9 +263,8 @@ export function realize(
   envelope?: Rect,
 ): number {
   if (isLeaf(node)) {
-    const placed = node.stagger && envelope ? applyStagger(rect, node.stagger, envelope) : rect;
-    out.push({ rect: placed, spec: node.spec });
-    return penaltyOf(node.spec, placed);
+    out.push({ rect, spec: node.spec });
+    return penaltyOf(node.spec, rect);
   }
   const alongX = node.axis ? node.axis === 'x' : rect.w >= rect.h ? node.longBias : !node.longBias;
   const span = (alongX ? rect.w : rect.h) - (node.passage ? PASSAGE_FT : 0);
@@ -257,10 +281,12 @@ export function realize(
       pen += (MIN_SLICE_FT - size) * 10;
       size = Math.max(size, 0.5);
     }
-    const sub: Rect = alongX
+    const cut: Rect = alongX
       ? { x: rect.x + offset, y: rect.y, w: size, h: rect.h }
       : { x: rect.x, y: rect.y + offset, w: rect.w, h: size };
-    pen += realize(node.children[g], sub, out, penaltyOf, envelope);
+    const child = node.children[g];
+    const sub = child.stagger && envelope ? applyStagger(cut, child.stagger, envelope) : cut;
+    pen += realize(child, sub, out, penaltyOf, envelope);
     offset += size;
     if (node.passage && g === 0) {
       const pr: Rect = alongX
