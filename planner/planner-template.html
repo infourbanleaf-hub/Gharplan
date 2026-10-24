@@ -344,7 +344,7 @@ td input { width: 64px; padding: 6px 8px; }
     var note = minimum > buildable
       ? 'Does not fit even after leaving optional rooms out.'
       : used > target
-        ? 'Fits only at the smallest sizes, which leaves less than ' + (input.openSpacePct || 0) + '% open.'
+        ? 'Fits only at the smallest sizes, which leaves little open space.'
         : 'Sized to about ' + Math.round(used / buildable * 100) + '% of the buildable area.';
     if (dropped.length) note += ' Left out to fit: ' + dropped.join(', ') + '.';
     ROOMS.forEach(function (r) {
@@ -378,8 +378,6 @@ td input { width: 64px; padding: 6px 8px; }
       needMin += m.w * m.h;
     });
     var open = buildable - need;
-    var openPct = input.openSpacePct || 0;
-    var required = buildable * openPct / 100;
     var box = $('feasibility');
     box.textContent = '';
     var verdict, tone;
@@ -394,9 +392,6 @@ td input { width: 64px; padding: 6px 8px; }
       area.innerHTML = 'Possible open area: <b>about ' + Math.max(0, Math.round(open)) + ' sq ft</b> (' +
         Math.max(0, Math.round(open / buildable * 100)) + '% of buildable, ' + Math.max(0, Math.round(open / plotArea * 100)) + '% of plot).';
       box.appendChild(area);
-      if (openPct > 0 && open < required) {
-        addText(box, 'div', 'Less open space than the ' + openPct + "% you asked for (about " + Math.round(required) + ' sq ft). Reduce room sizes to leave it.', 'verdict warn');
-      }
     }
   }
 
@@ -417,7 +412,6 @@ td input { width: 64px; padding: 6px 8px; }
     if (needMin > buildable) { verdict = 'Does not fit. At their minimum sizes the rooms need ' + Math.round(needMin) + ' sq ft, but the buildable area is ' + Math.round(buildable) + ' sq ft. Remove a room or enlarge the plot.'; tone = 'err'; }
     else if (need > buildable) { verdict = 'Tight. Rooms fit only near their minimum sizes (need ' + Math.round(need) + ' sq ft at default, ' + Math.round(buildable) + ' sq ft buildable).'; tone = 'warn'; }
     else { verdict = 'Fits at default sizes.'; tone = ''; }
-    var open = buildable - need;
     var box = $('space');
     box.textContent = '';
     [
@@ -430,10 +424,6 @@ td input { width: 64px; padding: 6px 8px; }
       box.appendChild(d);
     });
     addText(box, 'div', verdict, tone);
-    if (open > 0) {
-      addText(box, 'div', 'Open space left over: about ' + Math.round(open) + ' sq ft (' + pct(open) + '% of the plot).' +
-        (pct(open) > 25 ? ' That is more than 25% of the plot, so the planner needs your decision on how to use it.' : ''));
-    }
     sizesFeasibility();
   }
 
@@ -505,7 +495,7 @@ td input { width: 64px; padding: 6px 8px; }
     $('plans').textContent = '';
     setTimeout(function () {
       try {
-        render(GP.generatePlans(readInput(), { count: 3, restarts: 600 }));
+        render(GP.generatePlans(readInput(), { count: 3, restarts: 1200 }));
       } catch (e) {
         status.className = 'err';
         status.textContent = 'Something went wrong: ' + (e && e.message ? e.message : e);
