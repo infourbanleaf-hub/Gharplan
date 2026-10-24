@@ -6,6 +6,7 @@ export const LIMITS = {
   plotFt: { min: 10, max: 200 },
   setbackFt: { min: 0, max: 100 },
   roomFt: { min: 2, max: 60 },
+  openSpacePct: { min: 0, max: 30 },
 } as const;
 
 export function validatePlotInput(input: PlotInput): string[] {
@@ -16,6 +17,9 @@ export function validatePlotInput(input: PlotInput): string[] {
   }
   for (const [key, v] of Object.entries(input.setbacks ?? {})) {
     if (v !== undefined && !inRange(v, LIMITS.setbackFt)) errors.push(`Setback ${key} must be between 0 and ${LIMITS.setbackFt.max} ft.`);
+  }
+  if (input.openSpacePct !== undefined && !inRange(input.openSpacePct, LIMITS.openSpacePct)) {
+    errors.push(`Open space must be between 0 and ${LIMITS.openSpacePct.max}% of the built-up area.`);
   }
   for (const [kind, o] of Object.entries(input.roomSizes ?? {})) {
     if (!o) continue;
