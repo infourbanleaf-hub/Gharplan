@@ -271,7 +271,7 @@ export function layoutTwoBlocks(
   const needBack = back.reduce((s, it) => s + minArea(it, 0), 0);
   const needWing = wing.reduce((s, it) => s + minArea(it, WING_MIN_RELAX_FT), 0);
   const wingShare = needWing / (needRoad + needBack + needWing);
-  const roadW = road.reduce((s, it) => s + it.spec.minW, 0) + 1;
+  const roadW = road.reduce((s, it) => s + Math.max(0, it.spec.minW - WING_MIN_RELAX_FT), 0) + 1;
   const blocks = footprintBlocks(env, wingShare, structRand, roadW);
   // The back band takes the depth its rooms need; the road band keeps the rest.
   const backH = back.length === 0 ? 0 : Math.max(BACK_BAND_MIN_FT, ...back.map((it) => it.spec.minH));
@@ -284,7 +284,14 @@ export function layoutTwoBlocks(
   const relaxed: LeafPenalty = (spec, rect) =>
     penaltyOf({ ...spec, minW: spec.minW - allowanceOf(spec), minH: spec.minH - allowanceOf(spec) }, rect);
 
-  const a = optimise(stripsAlongX(buildTree(road, structRand)), roadRect, chainRand, penaltyOf);
+  // Living and kitchen get the same 2 ft allowance as the wing, so the wing can take the width.
+  const roadRelaxed: LeafPenalty = (spec, rect) =>
+    penaltyOf({ ...spec, minW: spec.minW - WING_MIN_RELAX_FT, minH: spec.minH - WING_MIN_RELAX_FT }, rect);
+  const roadPart = optimise(stripsAlongX(buildTree(road, structRand)), roadRect, chainRand, roadRelaxed);
+  const a = {
+    ...roadPart,
+    leaves: roadPart.leaves.map((leaf) => (leaf.spec ? { ...leaf, minRelaxFt: WING_MIN_RELAX_FT } : leaf)),
+  };
   const parts = [a];
   if (back.length > 0) {
     parts.push(optimise(stripsAlongX(buildTree(back, structRand)), backRect, chainRand, penaltyOf));
