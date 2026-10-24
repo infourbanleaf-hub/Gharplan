@@ -38,7 +38,7 @@ const WING_KINDS = new Set(['master', 'bedroom', 'guest', 'attachedToilet', 'stu
 /** Wing rooms may be this many feet under their minimum size, so a setback notch can be absorbed. */
 const WING_MIN_RELAX_FT = 2;
 /** Back-row structures tried per layout, to find one where the common toilet touches living. */
-const BACK_ROW_TRIES = 4;
+const BACK_ROW_TRIES = 6;
 /** Shallowest back band in the front block (dining, common toilet, utility, store). */
 const BACK_BAND_MIN_FT = 8;
 const WING_MIN_SHARE = 0.25;
@@ -328,25 +328,35 @@ export function layoutTwoBlocks(
   const parts = [{ leaves: roadLeaves, pen: roadPart.pen }];
   if (back.length > 0) {
     // The back row does not need road access, so its rooms may split in either direction. Several
-    // structures are tried, with the common toilet first or last in the row; the first one in which the
-    // toilet shares a wall with living is kept, otherwise the lowest-penalty one.
+    // structures are tried, each with the common toilet or dining first or last. The structure that
+    // meets the most wall-sharing needs with living (common toilet, dining) is kept; ties go to the
+    // lowest penalty.
     const livingLeaf = roadLeaves.find((leaf) => leaf.spec?.kind === 'living');
-    const toiletIdx = back.findIndex((it) => it.spec.kind === 'commonToilet');
-    const orders = toiletIdx < 0
-      ? [back]
-      : [[back[toiletIdx], ...back.filter((_, i) => i !== toiletIdx)], [...back.filter((_, i) => i !== toiletIdx), back[toiletIdx]]];
+    const needs = ['commonToilet', 'dining'].filter((kind) => back.some((it) => it.spec.kind === kind));
+    const withFirst = (kind: string) => {
+      const idx = back.findIndex((it) => it.spec.kind === kind);
+      return [back[idx], ...back.filter((_, i) => i !== idx)];
+    };
+    const withLast = (kind: string) => {
+      const idx = back.findIndex((it) => it.spec.kind === kind);
+      return [...back.filter((_, i) => i !== idx), back[idx]];
+    };
+    const orders: Item[][] = [back];
+    for (const kind of needs) orders.push(withFirst(kind), withLast(kind));
     let bestBack: { leaves: Leaf[]; pen: number } | null = null;
-    let bestTouches = false;
+    let bestMet = -1;
     for (let attempt = 0; attempt < BACK_ROW_TRIES; attempt++) {
       const order = orders[attempt % orders.length];
       const part = optimise(buildTree(order, mulberry32(Math.floor(structRand() * 2 ** 31))), backRect, chainRand, penaltyOf);
-      const toiletLeaf = part.leaves.find((leaf) => leaf.spec?.kind === 'commonToilet');
-      const touches = !!(toiletLeaf && livingLeaf && (sharedEdge(toiletLeaf.rect, livingLeaf.rect)?.length ?? 0) >= 2);
-      if (!bestBack || (touches && !bestTouches) || (touches === bestTouches && part.pen < bestBack.pen)) {
+      const met = needs.filter((kind) => {
+        const leaf = part.leaves.find((l) => l.spec?.kind === kind);
+        return !!(leaf && livingLeaf && (sharedEdge(leaf.rect, livingLeaf.rect)?.length ?? 0) >= 2);
+      }).length;
+      if (!bestBack || met > bestMet || (met === bestMet && part.pen < bestBack.pen)) {
         bestBack = part;
-        bestTouches = touches;
+        bestMet = met;
       }
-      if (bestTouches && bestBack.pen === 0) break;
+      if (bestMet === needs.length && bestBack.pen === 0) break;
     }
     parts.push(bestBack!);
   }
