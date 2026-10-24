@@ -61,6 +61,33 @@ attractive plan. Rules:
 Replaces the earlier proposal for a rectangular footprint and full-length shared walls.
 Validity at 600 restarts drops slightly; the acceptance tests use 1200.
 
+## Stepped footprint: evidence from Groot Parys houses 45-51
+
+The Groot Parys houses 45, 46, 47, 48 and 51 are not rectangles. Their outlines are built from
+offset blocks, not a single box with a notch cut out.
+
+| House | Outline | Notes |
+|---|---|---|
+| 45 | Living block with a bedroom wing set back on the right; covered patio and braai project at the back-left | Garage projects at the road side. Service yard sits in the recess beside the kitchen. |
+| 46 | Bedroom block on the left, living/dining block on the right; kitchen and service yard in a rear recess | Garage and carport project to the right of the road frontage. Braai projects at the front-centre. |
+| 47 | Bedroom wing on the right set back from the living/dining block; service yard in a rear recess | Garage projects to the left of the road frontage. |
+| 48 | Bedroom 2 wing projects forward on the left; living/dining centre; covered patio projects at the back-right | Garage and covered entrance project at the road side. |
+| 51 | Living/dining block projects toward the road; bedrooms set back on the left | Garage projects at the right, forming a step at the road side. |
+
+Rules from these houses:
+
+| # | Rule | Status |
+|---|---|---|
+| S1 | The footprint is built from two or more offset blocks, with a step of about 4-8 ft between them. | Partly: strip stagger gives a 2-6 ft step, but forced steps rarely pass the other rules. |
+| S2 | A step is a recess (an open niche) or a projection (garage, covered entrance, braai, patio) at the road side or the back. | Recess: yes. Projection beyond the envelope: no. |
+| S3 | The service yard sits in a recess at the back, beside the kitchen. | Open. Needs a service-yard zone. |
+| S4 | The road side keeps the entrance room's full frontage. | Implemented. |
+| S5 | Projections (garage, covered entrance) stay in the front setback. | Implemented for parking; covered-entrance projection is open. |
+
+Open decision: the stepped footprint needs a two-block generator (a real offset envelope), not
+only a strip inset. Strip inset is what the branch has now. The two-block generator would be a
+larger change, and it would let steps be built in deliberately rather than found by the search.
+
 ## Open items for the user
 
 1. Service yard and covered entrance (R9, R10) need a zone type each, if they should be scored.
