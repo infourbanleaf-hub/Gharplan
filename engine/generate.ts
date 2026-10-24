@@ -352,8 +352,8 @@ function fitDoors(build: (shifts: Map<string, number>) => Layout, childIds: stri
   let best = build(shifts);
   for (let pass = 0; pass < 2; pass++) {
     for (const id of childIds) {
-      for (const k of [-1, 0, 1]) {
-        if ((shifts.get(id) ?? 0) === k) continue;
+      for (const k of [-1, 1]) {
+        if ((shifts.get(id) ?? -1) === k) continue;
         const trial = new Map(shifts).set(id, k);
         const layout = build(trial);
         if (layout.missingFurniture < best.missingFurniture) {
@@ -637,7 +637,7 @@ function assembleLayout(
     const blockedByParking: [number, number][] = roadSide.side === 'front'
       ? parking.map((p): [number, number] => [p.rect.x - 1, p.rect.x + p.rect.w + 1])
       : [];
-    const at = placeOnSide(seg, MAIN_DOOR_FT, blockedByParking);
+    const at = placeOnSide(seg, MAIN_DOOR_FT, blockedByParking, true);
     if (at !== null) {
       mainDoorCenter = { side: roadSide.side, at };
       break;
@@ -663,10 +663,10 @@ function assembleLayout(
     const w = open ? OPEN_KITCHEN_FT : width;
     const lo = edge.axis === 'v' ? edge.y1 : edge.x1;
     const hi = edge.axis === 'v' ? edge.y2 : edge.x2;
-    // Centred by default; a shift slides the door toward one end of the shared wall.
+    // Doors sit at a corner of the shared wall: -1 is the low end, +1 the high end (low end by default).
     const mid = (lo + hi) / 2;
     const slack = Math.max(0, (hi - lo - w) / 2 - 0.25);
-    const at = Math.min(hi - w / 2 - 0.25, Math.max(lo + w / 2 + 0.25, mid + (doorShifts.get(child.id) ?? 0) * slack));
+    const at = Math.min(hi - w / 2 - 0.25, Math.max(lo + w / 2 + 0.25, mid + (doorShifts.get(child.id) ?? -1) * slack));
     const seg = edgeSegment(edge);
     openings.push({
       kind: open ? 'opening' : 'door',
@@ -747,11 +747,15 @@ function centredSegment(
     : { a: { x: lo, y: seg.a.y }, b: { x: hi, y: seg.a.y } };
 }
 
-/** Centre of the largest free stretch along a wall, or null if nothing fits. Clearance: 1 ft beside an opening. */
+/**
+ * Position along the largest free stretch of a wall, or null if nothing fits. Clearance: 1 ft beside an
+ * opening. Centred by default; `atCorner` puts the opening at the low-end corner of that stretch.
+ */
 function placeOnSide(
   seg: { a: { x: number; y: number }; b: { x: number; y: number } },
   width: number,
   blocked: [number, number][] = [],
+  atCorner = false,
 ): number | null {
   const vertical = seg.a.x === seg.b.x;
   const start = vertical ? Math.min(seg.a.y, seg.b.y) : Math.min(seg.a.x, seg.b.x);
@@ -769,7 +773,8 @@ function placeOnSide(
   for (const f of free) {
     if (f[1] - f[0] >= width + 1 && (!best || f[1] - f[0] > best[1] - best[0])) best = f;
   }
-  return best ? (best[0] + best[1]) / 2 : null;
+  if (!best) return null;
+  return atCorner ? best[0] + width / 2 + 0.25 : (best[0] + best[1]) / 2;
 }
 
 /** Pairwise distinctness helper, exported for tests. */
