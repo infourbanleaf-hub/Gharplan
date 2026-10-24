@@ -21,9 +21,9 @@ const OPEN_KITCHEN_FT = roomDefaults.openKitchenWidthFt;
 const PASSAGE_PROBABILITY = 0.2;
 const MIN_SLICE_FT = 3;
 const MIN_DISTINCT = 0.35;
-/** Share of boundary rooms that get a staggered edge, and the niche depths (ft) it can leave. */
-const STAGGER_PROBABILITY = 0.35;
-const STAGGER_DEPTHS_FT = [3, 4, 5, 6];
+/** Random strip stagger is off (0): stepped outlines come from the forced restarts in generatePlans. */
+const STAGGER_PROBABILITY = 0;
+const STAGGER_DEPTHS_FT = [2, 3];
 const FURNITURE_SHORTLIST = 60;
 /** Feet a room may grow beyond its default in each dimension (matches the room limits in engine/edit.ts). */
 export const MAX_GROWTH_FT = 2;
