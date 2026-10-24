@@ -21,9 +21,14 @@ const OPEN_KITCHEN_FT = roomDefaults.openKitchenWidthFt;
 const PASSAGE_PROBABILITY = 0.2;
 const MIN_SLICE_FT = 3;
 const MIN_DISTINCT = 0.35;
-/** Random strip stagger is off (0): stepped outlines come from the forced restarts in generatePlans. */
-const STAGGER_PROBABILITY = 0;
-const STAGGER_DEPTHS_FT = [2, 3];
+/** Two-block footprint: how far the wing is set back from the rear, and the wing width limits as a share of the envelope. */
+const WING_SETBACK_FT = [4, 5, 6, 7, 8];
+const WING_WIDTH_MIN = 0.3;
+const WING_WIDTH_MAX = 0.8;
+/** Rooms that go in the wing when the room list allows it (bedrooms and their toilets). */
+const WING_KINDS = new Set(['master', 'bedroom', 'guest', 'attachedToilet', 'study']);
+const WING_MIN_SHARE = 0.25;
+const WING_MAX_SHARE = 0.6;
 const FURNITURE_SHORTLIST = 60;
 /** Feet a room may grow beyond its default in each dimension (matches the room limits in engine/edit.ts). */
 export const MAX_GROWTH_FT = 2;
@@ -92,9 +97,11 @@ export function generatePlans(rawInput: PlotInput, opts: GenerateOptions = {}): 
 
   // Each restart is a short hill-climb over the room order. Cost = size penalty + hard violations.
   const evaluateOrder = (order: Item[], structSeed: number, chainSeed: number, forced: boolean) => {
-    let tree = buildTree(order, mulberry32(structSeed));
-    if (forced) tree = forceStagger(tree, mulberry32(structSeed ^ 0x5bd1e995));
-    const { leaves, pen } = optimise(tree, frame.interior, mulberry32(chainSeed), penalty);
+    const structRand = mulberry32(structSeed);
+    const chainRand = mulberry32(chainSeed);
+    const { leaves, pen } = forced
+      ? layoutTwoBlocks(order, frame.interior, structRand, chainRand, penalty)
+      : optimise(buildTree(order, structRand), frame.interior, chainRand, penalty);
     if (pen > 0) return { cost: INFEASIBLE_COST + pen, cand: null as Candidate | null, ev: null as Evaluation | null };
     const cand = toCandidate(leaves, frame);
     const ev = evaluate(cand, frame, input, program.rooms);
@@ -108,8 +115,8 @@ export function generatePlans(rawInput: PlotInput, opts: GenerateOptions = {}): 
     const structSeed = Math.floor(restartRand() * 2 ** 31);
     const chainSeed = Math.floor(restartRand() * 2 ** 31);
     let order = zoned && restartRand() < 0.5 ? orderItemsZoned(items, frame, restartRand) : orderItems(items, restartRand);
-    // Every third restart steps the outline, so stepped plans are always among the candidates.
-    const forced = r % 3 === 0;
+    // Every other restart uses the two-block footprint, so stepped plans are always among the candidates.
+    const forced = r % 2 === 0;
     let cur = evaluateOrder(order, structSeed, chainSeed, forced);
     for (let step = 0; step < CHAIN_STEPS && cur.cost > 0; step++) {
       const next = order.slice();
@@ -173,26 +180,8 @@ export function allocate(rooms: RoomSpec[], interior: Rect): Item[] {
   });
 }
 
-/**
- * Pulls a room's outer edge in from the building envelope, leaving an open niche. The road side
- * (y = 0 in the local frame) is never staggered, so the entrance room keeps its full frontage.
- */
-export interface Stagger {
-  side: 'left' | 'right' | 'back';
-  ft: number;
-}
-
 export interface LeafNode {
   spec: RoomSpec;
-  stagger?: Stagger;
-}
-
-/** Adds a stagger to one strip of the root split, so the outline steps. */
-function forceStagger(tree: TreeNode, rand: () => number): TreeNode {
-  if (isLeaf(tree)) return tree;
-  const child = tree.children[Math.floor(rand() * tree.children.length)];
-  child.stagger = randomStagger(rand);
-  return tree;
 }
 
 /** True when the rooms (passage included) do not fill the building envelope, so the outline has a step. */
@@ -201,12 +190,57 @@ export function isStepped(cand: Candidate, frame: Frame): boolean {
   return Math.abs(frame.interior.w * frame.interior.h - covered) >= 1;
 }
 
-function randomStagger(rand: () => number): Stagger {
-  const sides: Stagger['side'][] = ['left', 'right', 'back'];
+/**
+ * Splits the envelope into a front block across the whole depth and a wing at one side, set back
+ * from the rear edge. The front block keeps the road frontage (y = 0), so the entrance room is not cut.
+ */
+export function footprintBlocks(env: Rect, wingWeightShare: number, rand: () => number): { front: Rect; wing: Rect } {
+  const setback = WING_SETBACK_FT[Math.floor(rand() * WING_SETBACK_FT.length)];
+  // The wing is shallower than the envelope by its setback, so it needs a wider share of the width
+  // to hold the same share of the rooms.
+  const widthShare = (wingWeightShare * env.h) / (env.h - setback);
+  const wingW = quantise(env.w * Math.min(WING_WIDTH_MAX, Math.max(WING_WIDTH_MIN, widthShare)));
+  const wingLeft = rand() < 0.5;
+  const frontW = env.w - wingW;
   return {
-    side: sides[Math.floor(rand() * sides.length)],
-    ft: STAGGER_DEPTHS_FT[Math.floor(rand() * STAGGER_DEPTHS_FT.length)],
+    front: { x: wingLeft ? env.x + wingW : env.x, y: env.y, w: frontW, h: env.h },
+    wing: { x: wingLeft ? env.x : env.x + frontW, y: env.y, w: wingW, h: env.h - setback },
   };
+}
+
+/** Which rooms go in the wing: the bedroom group when its weight is in range, else the last items in order. */
+function splitWing(items: Item[]): { front: Item[]; wing: Item[] } {
+  const total = items.reduce((s, it) => s + it.weight, 0);
+  const wingItems = items.filter((it) => WING_KINDS.has(it.spec.kind));
+  const share = wingItems.reduce((s, it) => s + it.weight, 0) / total;
+  if (share >= WING_MIN_SHARE && share <= WING_MAX_SHARE && wingItems.length < items.length) {
+    return { front: items.filter((it) => !WING_KINDS.has(it.spec.kind)), wing: wingItems };
+  }
+  const wing: Item[] = [];
+  let acc = 0;
+  for (let i = items.length - 1; i >= 1 && acc / total < 0.4; i--) {
+    wing.unshift(items[i]);
+    acc += items[i].weight;
+  }
+  return { front: items.slice(0, items.length - wing.length), wing };
+}
+
+/** Lays out a two-block footprint: each block is optimised on its own rectangle. */
+export function layoutTwoBlocks(
+  items: Item[],
+  env: Rect,
+  structRand: () => number,
+  chainRand: () => number,
+  penaltyOf: LeafPenalty,
+): { leaves: Leaf[]; pen: number } {
+  const { front, wing } = splitWing(items);
+  if (front.length === 0 || wing.length === 0) return { leaves: [], pen: INFEASIBLE_COST };
+  const total = items.reduce((s, it) => s + it.weight, 0);
+  const wingShare = wing.reduce((s, it) => s + it.weight, 0) / total;
+  const blocks = footprintBlocks(env, wingShare, structRand);
+  const a = optimise(buildTree(front, structRand), blocks.front, chainRand, penaltyOf);
+  const b = optimise(buildTree(wing, structRand), blocks.wing, chainRand, penaltyOf);
+  return { leaves: [...a.leaves, ...b.leaves], pen: a.pen + b.pen };
 }
 
 /** A cut of a rectangle into strips. `ratios` holds all but the last strip's share. */
@@ -217,7 +251,6 @@ export interface SplitNode {
   axis?: 'x' | 'y';
   passage: boolean;
   children: TreeNode[];
-  stagger?: Stagger;
 }
 
 export type TreeNode = LeafNode | SplitNode;
@@ -238,10 +271,7 @@ export function buildTree(items: Item[], rand: () => number): TreeNode {
   const children: TreeNode[] = [];
   for (let g = 0; g < groups; g++) {
     const part = items.slice(bounds[g], bounds[g + 1]);
-    const child = buildTree(part, rand);
-    // A whole strip can be pulled in from the envelope, which steps the outline.
-    if (rand() < STAGGER_PROBABILITY) child.stagger = randomStagger(rand);
-    children.push(child);
+    children.push(buildTree(part, rand));
     if (g < groups - 1) ratios.push(part.reduce((s2, it) => s2 + it.weight, 0) / total);
   }
   return {
@@ -260,7 +290,6 @@ export function realize(
   rect: Rect,
   out: Leaf[],
   penaltyOf: LeafPenalty = leafPenalty,
-  envelope?: Rect,
 ): number {
   if (isLeaf(node)) {
     out.push({ rect, spec: node.spec });
@@ -284,9 +313,7 @@ export function realize(
     const cut: Rect = alongX
       ? { x: rect.x + offset, y: rect.y, w: size, h: rect.h }
       : { x: rect.x, y: rect.y + offset, w: rect.w, h: size };
-    const child = node.children[g];
-    const sub = child.stagger && envelope ? applyStagger(cut, child.stagger, envelope) : cut;
-    pen += realize(child, sub, out, penaltyOf, envelope);
+    pen += realize(node.children[g], cut, out, penaltyOf);
     offset += size;
     if (node.passage && g === 0) {
       const pr: Rect = alongX
@@ -301,25 +328,6 @@ export function realize(
 
 function quantise(ft: number): number {
   return Math.round(ft * 16) / 16;
-}
-
-/** Insets a room's outer edge if it lies on the envelope boundary; otherwise returns the rect unchanged. */
-export function applyStagger(rect: Rect, stagger: Stagger, env: Rect): Rect {
-  const near = (a: number, b: number) => Math.abs(a - b) < 1e-6;
-  const out = { ...rect };
-  if (stagger.side === 'left' && near(rect.x, env.x)) {
-    out.x += stagger.ft;
-    out.w -= stagger.ft;
-  } else if (stagger.side === 'right' && near(rect.x + rect.w, env.x + env.w)) {
-    out.w -= stagger.ft;
-  } else if (stagger.side === 'back' && near(rect.y + rect.h, env.y + env.h)) {
-    out.h -= stagger.ft;
-  } else {
-    return rect;
-  }
-  // Keep the room at least a foot across; a smaller room would fail its minimum-size check anyway.
-  if (out.w < 1 || out.h < 1) return rect;
-  return { x: quantise(out.x), y: quantise(out.y), w: quantise(out.w), h: quantise(out.h) };
 }
 
 /**
@@ -430,7 +438,7 @@ export function optimise(
   steps = OPTIMISE_STEPS,
 ): { leaves: Leaf[]; pen: number } {
   const splits = collectSplits(tree);
-  let pen = realize(tree, rect, [], penaltyOf, rect);
+  let pen = realize(tree, rect, [], penaltyOf);
   let bestPen = pen;
   const best = splits.map((n) => n.ratios.slice());
   // Simulated annealing on the strip shares: occasionally accept a worse state to escape plateaus.
@@ -446,7 +454,7 @@ export function optimise(
       node.ratios[i] = old;
       continue;
     }
-    const p2 = realize(tree, rect, [], penaltyOf, rect);
+    const p2 = realize(tree, rect, [], penaltyOf);
     if (p2 <= pen || rand() < Math.exp(-(p2 - pen) / temperature)) {
       pen = p2;
       if (pen < bestPen) {
@@ -459,7 +467,7 @@ export function optimise(
   }
   splits.forEach((n, k) => (n.ratios = best[k]));
   const leaves: Leaf[] = [];
-  pen = realize(tree, rect, leaves, penaltyOf, rect);
+  pen = realize(tree, rect, leaves, penaltyOf);
   return { leaves, pen };
 }
 
