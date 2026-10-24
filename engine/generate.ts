@@ -37,6 +37,8 @@ const HALF_PLOT_CHANCE = 0.25;
 const WING_KINDS = new Set(['master', 'bedroom', 'guest', 'attachedToilet', 'study']);
 /** Wing rooms may be this many feet under their minimum size, so a setback notch can be absorbed. */
 const WING_MIN_RELAX_FT = 2;
+/** Back-row structures tried per layout, to find one where the common toilet touches living. */
+const BACK_ROW_TRIES = 4;
 /** Shallowest back band in the front block (dining, common toilet, utility, store). */
 const BACK_BAND_MIN_FT = 8;
 const WING_MIN_SHARE = 0.25;
@@ -325,9 +327,28 @@ export function layoutTwoBlocks(
   );
   const parts = [{ leaves: roadLeaves, pen: roadPart.pen }];
   if (back.length > 0) {
-    // The back row does not need road access, so its rooms may split in either direction.
-    const backPart = optimise(buildTree(back, structRand), backRect, chainRand, penaltyOf);
-    parts.push(backPart);
+    // The back row does not need road access, so its rooms may split in either direction. Several
+    // structures are tried, with the common toilet first or last in the row; the first one in which the
+    // toilet shares a wall with living is kept, otherwise the lowest-penalty one.
+    const livingLeaf = roadLeaves.find((leaf) => leaf.spec?.kind === 'living');
+    const toiletIdx = back.findIndex((it) => it.spec.kind === 'commonToilet');
+    const orders = toiletIdx < 0
+      ? [back]
+      : [[back[toiletIdx], ...back.filter((_, i) => i !== toiletIdx)], [...back.filter((_, i) => i !== toiletIdx), back[toiletIdx]]];
+    let bestBack: { leaves: Leaf[]; pen: number } | null = null;
+    let bestTouches = false;
+    for (let attempt = 0; attempt < BACK_ROW_TRIES; attempt++) {
+      const order = orders[attempt % orders.length];
+      const part = optimise(buildTree(order, mulberry32(Math.floor(structRand() * 2 ** 31))), backRect, chainRand, penaltyOf);
+      const toiletLeaf = part.leaves.find((leaf) => leaf.spec?.kind === 'commonToilet');
+      const touches = !!(toiletLeaf && livingLeaf && (sharedEdge(toiletLeaf.rect, livingLeaf.rect)?.length ?? 0) >= 2);
+      if (!bestBack || (touches && !bestTouches) || (touches === bestTouches && part.pen < bestBack.pen)) {
+        bestBack = part;
+        bestTouches = touches;
+      }
+      if (bestTouches && bestBack.pen === 0) break;
+    }
+    parts.push(bestBack!);
   }
 
   // Wing halls: the wing is cut into segments of at most WING_HALL_MAX_FT. Each segment has a short hall
