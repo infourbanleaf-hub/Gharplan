@@ -27,6 +27,10 @@ const WING_WIDTH_MIN = 0.3;
 const WING_WIDTH_MAX = 0.8;
 /** Width of the hall that runs along the wing's side facing the front block. */
 const WING_HALL_FT = 3.5;
+/** The hall is a passage, so it may be at most this long (the corridor rule). */
+const WING_HALL_MAX_FT = 15;
+/** Share of the hall-side wing area that the wing rooms may take; the rest is a 15 ft limit's leftover. */
+const WING_FIT_SHARE = 0.9;
 /** Chance that the wing uses the half-plot step (set back half the plot length, half the breadth wide). */
 const HALF_PLOT_CHANCE = 0.25;
 /** Rooms that go in the wing when the room list allows it (bedrooms and their toilets). */
@@ -325,14 +329,28 @@ export function layoutTwoBlocks(
     parts.push(backPart);
   }
 
-  // Wing hall: a strip along the side facing the front block. Every bedroom opens onto it, and it
-  // shares a wall with living, so the entrance reaches each bedroom without passing through another.
-  const hall = wingOnLeft
-    ? { x: blocks.wing.x + blocks.wing.w - WING_HALL_FT, y: blocks.wing.y, w: WING_HALL_FT, h: blocks.wing.h }
-    : { x: blocks.wing.x, y: blocks.wing.y, w: WING_HALL_FT, h: blocks.wing.h };
+  // Wing hall: a short passage (at most WING_HALL_MAX_FT) along the side facing the front block. The
+  // wing rooms sit beside it, so every one opens onto the hall and the hall shares a wall with living.
+  // Rooms that do not fit beside the hall move to the back row (study and guest first).
+  const hallLen = Math.min(WING_HALL_MAX_FT, blocks.wing.h);
+  const hallRect = wingOnLeft
+    ? { x: blocks.wing.x + blocks.wing.w - WING_HALL_FT, y: blocks.wing.y, w: WING_HALL_FT, h: hallLen }
+    : { x: blocks.wing.x, y: blocks.wing.y, w: WING_HALL_FT, h: hallLen };
   const roomsRect = wingOnLeft
-    ? { ...blocks.wing, w: blocks.wing.w - WING_HALL_FT }
-    : { ...blocks.wing, x: blocks.wing.x + WING_HALL_FT, w: blocks.wing.w - WING_HALL_FT };
+    ? { x: blocks.wing.x, y: blocks.wing.y, w: blocks.wing.w - WING_HALL_FT, h: hallLen }
+    : { x: blocks.wing.x + WING_HALL_FT, y: blocks.wing.y, w: blocks.wing.w - WING_HALL_FT, h: hallLen };
+  const roomArea = (rs: Item[]) => rs.reduce((sum, it) => sum + minArea(it, allowanceOf(it.spec)), 0);
+  const fitWing = [...wing];
+  const overflow: Item[] = [];
+  for (const kind of ['study', 'guest', 'bedroom'] as const) {
+    while (roomArea(fitWing) > roomsRect.w * roomsRect.h * WING_FIT_SHARE) {
+      const idx = fitWing.findIndex((it) => it.spec.kind === kind);
+      if (idx < 0) break;
+      overflow.push(...fitWing.splice(idx, 1));
+    }
+  }
+  wing = fitWing;
+  back = [...back, ...overflow];
   const wingPart = optimise(buildTree(wing, structRand), roomsRect, chainRand, (spec, rect) =>
     penaltyOf({ ...spec, minW: spec.minW - allowanceOf(spec), minH: spec.minH - allowanceOf(spec) }, rect),
   );
@@ -340,7 +358,7 @@ export function layoutTwoBlocks(
     leaf.spec && allowanceOf(leaf.spec) > 0 ? { ...leaf, minRelaxFt: WING_MIN_RELAX_FT } : leaf,
   );
   return {
-    leaves: [...parts.flatMap((x) => x.leaves), ...wingLeaves, { rect: hall }],
+    leaves: [...parts.flatMap((x) => x.leaves), ...wingLeaves, { rect: hallRect }],
     pen: parts.reduce((sum, x) => sum + x.pen, 0) + wingPart.pen,
   };
 }
