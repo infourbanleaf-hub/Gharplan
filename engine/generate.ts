@@ -28,7 +28,7 @@ const WING_WIDTH_MAX = 0.8;
 /** Width of the hall that runs along the wing's side facing the front block. */
 const WING_HALL_FT = 3.5;
 /** The hall is a passage, so it may be at most this long (the corridor rule). */
-const WING_HALL_MAX_FT = 15;
+const WING_HALL_MAX_FT = 30;
 /** Share of the hall-side wing area that the wing rooms may take; the rest is a 15 ft limit's leftover. */
 const WING_FIT_SHARE = 0.9;
 /** Chance that the wing uses the half-plot step (set back half the plot length, half the breadth wide). */
@@ -64,6 +64,7 @@ export interface Leaf {
   rect: Rect;
   spec?: RoomSpec;
   minRelaxFt?: number;
+  wingHall?: boolean;
 }
 
 /** Input defaults so callers can pass only what they changed. */
@@ -374,7 +375,7 @@ export function layoutTwoBlocks(
     for (const leaf of part.leaves) {
       wingLeaves.push(leaf.spec && allowanceOf(leaf.spec) > 0 ? { ...leaf, minRelaxFt: WING_MIN_RELAX_FT } : leaf);
     }
-    wingLeaves.push({ rect: seg.hallRect });
+    wingLeaves.push({ rect: seg.hallRect, wingHall: true });
   }
   return {
     leaves: [...parts.flatMap((x) => x.leaves), ...wingLeaves],
@@ -731,6 +732,7 @@ export function toCandidate(leaves: Leaf[], frame: Frame): Candidate {
       ...base,
       rect,
       minRelaxFt: leaf.minRelaxFt,
+      wingHall: leaf.wingHall,
       area: rect.w * rect.h,
       exteriorSides: exteriorSides(rect, frame.interior).map((e) => e.side),
       compass: compassOfPoint(cx, cy, frame),

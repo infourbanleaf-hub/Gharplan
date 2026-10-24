@@ -107,6 +107,8 @@ export interface PlacedRoom extends Omit<RoomSpec, 'defW' | 'defH' | 'minW' | 'm
   rect: Rect;
   /** Feet the minimum size is relaxed by. Wing rooms in a two-block footprint get an allowance. */
   minRelaxFt?: number;
+  /** True for a wing hall, which may be longer than an ordinary passage. */
+  wingHall?: boolean;
   area: number;
   /** Which sides of the room lie on the exterior (outer wall) line. */
   exteriorSides: Side[];
