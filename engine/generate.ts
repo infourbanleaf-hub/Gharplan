@@ -33,6 +33,10 @@ const WING_HALL_MAX_FT = 15;
 const WING_FIT_SHARE = 0.9;
 /** Chance that the wing uses the half-plot step (set back half the plot length, half the breadth wide). */
 const HALF_PLOT_CHANCE = 0.25;
+/** Plots below this area (sq ft) use the half-plot step only. */
+const SMALL_PLOT_AREA_SQFT = 2000;
+/** Whether the full (4-8 ft) setback is also allowed on small plots. Off: half-plot step only. */
+const FULL_SETBACK_ON_SMALL_PLOTS = false;
 /** Rooms that go in the wing when the room list allows it (bedrooms and their toilets). */
 const WING_KINDS = new Set(['master', 'bedroom', 'guest', 'attachedToilet', 'study']);
 /** Wing rooms may be this many feet under their minimum size, so a setback notch can be absorbed. */
@@ -108,6 +112,7 @@ export function generatePlans(rawInput: PlotInput, opts: GenerateOptions = {}): 
   // Zone-first starts are optional (strict Vastu only): a small gain, measured over three seeds.
   const zoned = input.vastu === 'strict' && input.zoneFirst === true;
   const rand = mulberry32(seed);
+  const smallPlot = frame.width * frame.depth < SMALL_PLOT_AREA_SQFT;
   const valid: { cand: Candidate; ev: Evaluation; seed: number }[] = [];
   let sampled = 0;
 
@@ -116,7 +121,7 @@ export function generatePlans(rawInput: PlotInput, opts: GenerateOptions = {}): 
     const structRand = mulberry32(structSeed);
     const chainRand = mulberry32(chainSeed);
     const { leaves, pen } = forced
-      ? layoutTwoBlocks(order, frame.interior, structRand, chainRand, penalty)
+      ? layoutTwoBlocks(order, frame.interior, structRand, chainRand, penalty, smallPlot)
       : optimise(buildTree(order, structRand), frame.interior, chainRand, penalty);
     // Only minimum sizes and aspect are hard here; toilet oversize is a soft cost (see leafPenalty).
     const hard = leaves.reduce((sum, leaf) => sum + (leaf.spec ? hardPenalty(leaf.spec, leaf.rect) : 0), 0);
@@ -139,7 +144,7 @@ export function generatePlans(rawInput: PlotInput, opts: GenerateOptions = {}): 
     const chainSeed = Math.floor(restartRand() * 2 ** 31);
     let order = zoned && restartRand() < 0.5 ? orderItemsZoned(items, frame, restartRand) : orderItems(items, restartRand);
     // Every other restart uses the two-block footprint, so stepped plans are always among the candidates.
-    const forced = r % 2 === 0;
+    const forced = smallPlot || r % 2 === 0;
     let cur = evaluateOrder(order, structSeed, chainSeed, forced);
     for (let step = 0; step < CHAIN_STEPS && cur.cost > 0; step++) {
       const next = order.slice();
@@ -222,9 +227,11 @@ export function footprintBlocks(
   wingWeightShare: number,
   rand: () => number,
   minFrontW = 0,
+  halfPlotOnly = false,
 ): { front: Rect; wing: Rect } {
   // Half-plot option: the wing is set back by half the plot length and is half the plot breadth wide.
-  const halfPlot = rand() < HALF_PLOT_CHANCE;
+  // Small plots use the half-plot step only; the full setback is used only if allowed.
+  const halfPlot = halfPlotOnly && !FULL_SETBACK_ON_SMALL_PLOTS ? true : rand() < HALF_PLOT_CHANCE;
   const setback = halfPlot ? quantise(env.h / 2) : WING_SETBACK_FT[Math.floor(rand() * WING_SETBACK_FT.length)];
   // The wing is shallower than the envelope by its setback, so it needs a wider share of the width
   // to hold the same share of the rooms.
@@ -285,6 +292,7 @@ export function layoutTwoBlocks(
   structRand: () => number,
   chainRand: () => number,
   penaltyOf: LeafPenalty,
+  halfPlotOnly = false,
 ): { leaves: Leaf[]; pen: number } {
   const kitchen = items.find((it) => it.spec.kind === 'kitchen');
   const living = items.find((it) => it.spec.kind === 'living');
@@ -304,7 +312,7 @@ export function layoutTwoBlocks(
   const needWing = wing.reduce((s, it) => s + minArea(it, allowanceOf(it.spec)), 0);
   const wingShare = needWing / (needRoad + needBack + needWing);
   const roadW = [kitchen, living].reduce((s, it) => s + Math.max(0, it.spec.minW - WING_MIN_RELAX_FT), 0) + 1;
-  const blocks = footprintBlocks(env, wingShare, structRand, roadW);
+  const blocks = footprintBlocks(env, wingShare, structRand, roadW, halfPlotOnly);
   const front = blocks.front;
 
   // Road row depth: searched between what the road rooms need and what the back row needs.
