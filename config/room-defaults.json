@@ -162,9 +162,9 @@
     }
   },
   "sizeVariation": {
-    "source": "Client rule: each side of a room may be 5% under or 10% over its default. Rooms may be rotated.",
+    "source": "Client rule: each side of a room may be 5% under or 15% over its default. Rooms may be rotated.",
     "minFactor": 0.95,
-    "maxFactor": 1.1
+    "maxFactor": 1.15
   },
   "windowWidthFt": 4,
   "ventilatorWidthFt": 2,
