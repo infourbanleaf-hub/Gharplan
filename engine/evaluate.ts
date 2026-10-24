@@ -52,6 +52,25 @@ export function doorable(a: PlacedRoom, b: PlacedRoom, widthOf: (r: PlacedRoom) 
   return edge.length >= width + DOOR_CLEARANCE;
 }
 
+/** Toilets may be at most this multiple of their default area. */
+const TOILET_MAX_AREA_FACTOR = 1.5;
+
+const isBedroomOrToilet = (kind: string) => isBedroom(kind) || kind === 'attachedToilet' || kind === 'commonToilet';
+
+/**
+ * Which rooms may share a door. A kitchen never opens to a bedroom or a toilet; a common toilet
+ * opens only onto the living room or a passage.
+ */
+export function doorPermitted(a: PlacedRoom, b: PlacedRoom): boolean {
+  if (a.kind === 'kitchen' && isBedroomOrToilet(b.kind)) return false;
+  if (b.kind === 'kitchen' && isBedroomOrToilet(a.kind)) return false;
+  if (a.kind === 'commonToilet' || b.kind === 'commonToilet') {
+    const other = a.kind === 'commonToilet' ? b : a;
+    return other.kind === 'living' || other.kind === 'passage';
+  }
+  return true;
+}
+
 export function doorWidthOf(r: PlacedRoom, specs: Map<string, RoomSpec>): number {
   if (r.kind === 'passage') return 3.5;
   return specs.get(r.id)?.doorWidth ?? roomConfig(r.kind).doorWidth;
@@ -144,6 +163,7 @@ export function evaluate(
     const reached = new Set<string>([living.id]);
     const isAttachedToilet = (r: PlacedRoom) => r.kind === 'attachedToilet';
     const linkable = (a: PlacedRoom, b: PlacedRoom) => {
+      if (!doorPermitted(a, b)) return false;
       if (isAttachedToilet(a) || isAttachedToilet(b)) {
         const toilet = isAttachedToilet(a) ? a : b;
         const other = toilet === a ? b : a;
@@ -187,6 +207,22 @@ export function evaluate(
     }
     for (const r of rooms) {
       if (!reached.has(r.id)) violations.push(`${r.label} cannot be reached from the entrance`);
+    }
+  }
+
+  // 5b. Dining must share a wall with the living room
+  const livingHard = rooms.find((r) => r.kind === 'living');
+  const diningHard = rooms.find((r) => r.kind === 'dining');
+  if (livingHard && diningHard && !sharedEdge(livingHard.rect, diningHard.rect)) {
+    violations.push('Dining room must share a wall with the living room');
+  }
+
+  // 5c. Toilets stay within their size cap
+  for (const r of rooms) {
+    if (r.kind !== 'attachedToilet' && r.kind !== 'commonToilet') continue;
+    const spec = specById.get(r.id);
+    if (spec && r.area > TOILET_MAX_AREA_FACTOR * spec.defW * spec.defH + 1e-6) {
+      violations.push(`${r.label} is larger than ${TOILET_MAX_AREA_FACTOR} times its default size`);
     }
   }
 
