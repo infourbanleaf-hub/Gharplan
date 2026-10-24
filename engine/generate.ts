@@ -244,11 +244,15 @@ export function layoutTwoBlocks(
   const needWing = wing.reduce((s, it) => s + minArea(it, WING_MIN_RELAX_FT), 0);
   const wingShare = needWing / (needFront + needWing);
   const blocks = footprintBlocks(env, wingShare, structRand);
+  // Toilets keep their full minimum sizes; the other wing rooms get the allowance.
+  const allowanceOf = (spec: RoomSpec) => (isToilet(spec.kind) ? 0 : WING_MIN_RELAX_FT);
   const relaxed: LeafPenalty = (spec, rect) =>
-    penaltyOf({ ...spec, minW: spec.minW - WING_MIN_RELAX_FT, minH: spec.minH - WING_MIN_RELAX_FT }, rect);
+    penaltyOf({ ...spec, minW: spec.minW - allowanceOf(spec), minH: spec.minH - allowanceOf(spec) }, rect);
   const a = optimise(buildTree(front, structRand), blocks.front, chainRand, penaltyOf);
   const b = optimise(buildTree(wing, structRand), blocks.wing, chainRand, relaxed);
-  const wingLeaves = b.leaves.map((leaf) => (leaf.spec ? { ...leaf, minRelaxFt: WING_MIN_RELAX_FT } : leaf));
+  const wingLeaves = b.leaves.map((leaf) =>
+    leaf.spec && allowanceOf(leaf.spec) > 0 ? { ...leaf, minRelaxFt: WING_MIN_RELAX_FT } : leaf,
+  );
   return { leaves: [...a.leaves, ...wingLeaves], pen: a.pen + b.pen };
 }
 

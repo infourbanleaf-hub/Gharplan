@@ -56,6 +56,8 @@ export function doorable(a: PlacedRoom, b: PlacedRoom, widthOf: (r: PlacedRoom) 
 const LIVING_MAX_GROWTH_FT = 2;
 /** Score added for each envelope corner a niche cuts away, so stepped outlines can beat rectangles. */
 const STEP_BONUS = 2;
+/** Toilets may grow at most this far beyond their default in each dimension. */
+const TOILET_GROWTH_FT = 1;
 /** Toilets may be at most this multiple of their default area. */
 const TOILET_MAX_AREA_FACTOR = 1.5;
 
@@ -66,6 +68,7 @@ const isBedroomOrToilet = (kind: string) => isBedroom(kind) || kind === 'attache
  * opens only onto the living room or a passage.
  */
 export function doorPermitted(a: PlacedRoom, b: PlacedRoom): boolean {
+  if (isBedroom(a.kind) && isBedroom(b.kind)) return false;
   if (a.kind === 'kitchen' && isBedroomOrToilet(b.kind)) return false;
   if (b.kind === 'kitchen' && isBedroomOrToilet(a.kind)) return false;
   if (a.kind === 'commonToilet' || b.kind === 'commonToilet') {
@@ -228,6 +231,14 @@ export function evaluate(
     }
   }
 
+  // 5a. The kitchen sits at the entrance: it must have an outer wall on the road side
+  const kitchenSides = roadSidesOf(input);
+  for (const k of rooms.filter((r) => r.kind === 'kitchen')) {
+    if (!exteriorSides(k.rect, frame.interior).some((e) => kitchenSides.includes(e.side))) {
+      violations.push('Kitchen must be on the road side, at the entrance');
+    }
+  }
+
   // 5b. Dining must share a wall with the living room
   const livingHard = rooms.find((r) => r.kind === 'living');
   const diningHard = rooms.find((r) => r.kind === 'dining');
@@ -251,8 +262,13 @@ export function evaluate(
   for (const r of rooms) {
     if (r.kind !== 'attachedToilet' && r.kind !== 'commonToilet') continue;
     const spec = specById.get(r.id);
-    if (spec && r.area > TOILET_MAX_AREA_FACTOR * spec.defW * spec.defH + 1e-6) {
-      violations.push(`${r.label} is larger than ${TOILET_MAX_AREA_FACTOR} times its default size`);
+    if (!spec) continue;
+    const long = Math.max(r.rect.w, r.rect.h);
+    const short = Math.min(r.rect.w, r.rect.h);
+    const longCap = Math.max(spec.defW, spec.defH) + TOILET_GROWTH_FT;
+    const shortCap = Math.min(spec.defW, spec.defH) + TOILET_GROWTH_FT;
+    if (r.area > TOILET_MAX_AREA_FACTOR * spec.defW * spec.defH + 1e-6 || long > longCap + 1e-6 || short > shortCap + 1e-6) {
+      violations.push(`${r.label} is larger than its default size (at most ${TOILET_GROWTH_FT} ft more each way)`);
     }
   }
 
