@@ -27,6 +27,8 @@ const WING_WIDTH_MIN = 0.3;
 const WING_WIDTH_MAX = 0.8;
 /** Rooms that go in the wing when the room list allows it (bedrooms and their toilets). */
 const WING_KINDS = new Set(['master', 'bedroom', 'guest', 'attachedToilet', 'study']);
+/** Wing rooms may be this many feet under their minimum size, so a setback notch can be absorbed. */
+const WING_MIN_RELAX_FT = 2;
 const WING_MIN_SHARE = 0.25;
 const WING_MAX_SHARE = 0.6;
 const FURNITURE_SHORTLIST = 60;
@@ -51,6 +53,7 @@ export interface Item {
 export interface Leaf {
   rect: Rect;
   spec?: RoomSpec;
+  minRelaxFt?: number;
 }
 
 /** Input defaults so callers can pass only what they changed. */
@@ -235,12 +238,18 @@ export function layoutTwoBlocks(
 ): { leaves: Leaf[]; pen: number } {
   const { front, wing } = splitWing(items);
   if (front.length === 0 || wing.length === 0) return { leaves: [], pen: INFEASIBLE_COST };
-  const total = items.reduce((s, it) => s + it.weight, 0);
-  const wingShare = wing.reduce((s, it) => s + it.weight, 0) / total;
+  // Split the width by the minimum areas each block must hold (the wing's allowance included).
+  const minArea = (it: Item, relax: number) => Math.max(0, it.spec.minW - relax) * Math.max(0, it.spec.minH - relax);
+  const needFront = front.reduce((s, it) => s + minArea(it, 0), 0);
+  const needWing = wing.reduce((s, it) => s + minArea(it, WING_MIN_RELAX_FT), 0);
+  const wingShare = needWing / (needFront + needWing);
   const blocks = footprintBlocks(env, wingShare, structRand);
+  const relaxed: LeafPenalty = (spec, rect) =>
+    penaltyOf({ ...spec, minW: spec.minW - WING_MIN_RELAX_FT, minH: spec.minH - WING_MIN_RELAX_FT }, rect);
   const a = optimise(buildTree(front, structRand), blocks.front, chainRand, penaltyOf);
-  const b = optimise(buildTree(wing, structRand), blocks.wing, chainRand, penaltyOf);
-  return { leaves: [...a.leaves, ...b.leaves], pen: a.pen + b.pen };
+  const b = optimise(buildTree(wing, structRand), blocks.wing, chainRand, relaxed);
+  const wingLeaves = b.leaves.map((leaf) => (leaf.spec ? { ...leaf, minRelaxFt: WING_MIN_RELAX_FT } : leaf));
+  return { leaves: [...a.leaves, ...wingLeaves], pen: a.pen + b.pen };
 }
 
 /** A cut of a rectangle into strips. `ratios` holds all but the last strip's share. */
@@ -564,6 +573,7 @@ export function toCandidate(leaves: Leaf[], frame: Frame): Candidate {
     return {
       ...base,
       rect,
+      minRelaxFt: leaf.minRelaxFt,
       area: rect.w * rect.h,
       exteriorSides: exteriorSides(rect, frame.interior).map((e) => e.side),
       compass: compassOfPoint(cx, cy, frame),

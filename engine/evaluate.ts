@@ -136,8 +136,9 @@ export function evaluate(
     const spec = specById.get(r.id)!;
     const short = Math.min(r.rect.w, r.rect.h);
     const long = Math.max(r.rect.w, r.rect.h);
-    const minShort = Math.min(spec.minW, spec.minH);
-    const minLong = Math.max(spec.minW, spec.minH);
+    const relax = r.minRelaxFt ?? 0;
+    const minShort = Math.min(spec.minW, spec.minH) - relax;
+    const minLong = Math.max(spec.minW, spec.minH) - relax;
     if (short + 1e-6 < minShort || long + 1e-6 < minLong) {
       violations.push(`${r.label} is below minimum size`);
     }

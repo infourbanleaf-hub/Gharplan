@@ -105,6 +105,8 @@ export interface RoomSpec {
 
 export interface PlacedRoom extends Omit<RoomSpec, 'defW' | 'defH' | 'minW' | 'minH' | 'doorWidth'> {
   rect: Rect;
+  /** Feet the minimum size is relaxed by. Wing rooms in a two-block footprint get an allowance. */
+  minRelaxFt?: number;
   area: number;
   /** Which sides of the room lie on the exterior (outer wall) line. */
   exteriorSides: Side[];
