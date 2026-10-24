@@ -45,6 +45,22 @@ rule is implemented in the engine. Sizes are in feet unless marked m or m2.
 - Setbacks: unchanged. `config/setbacks.json` keeps the brief's bands (client instruction).
 - Acceptance: all four cases return three layouts each. `npx vitest run`: 45 of 45 pass.
 
+## Staggered outline and niches
+
+The footprint no longer has to be a rectangle. Boundary rooms may be pulled in from the side or
+back of the building by 2, 3, 4 or 5 ft, which leaves an open niche (a recess for a verandah,
+courtyard or light well). This follows client direction to add stagger and niches for a more
+attractive plan. Rules:
+
+- The road side (y = 0) is never staggered, so the entrance room keeps its frontage.
+- Only rooms on the envelope boundary can be staggered; interior rooms are unchanged.
+- A staggered room keeps its minimum size, or the layout fails the size check.
+- About 15% of rooms are given a stagger option; the search keeps the ones that score well.
+- Walls, doors and windows follow the room edges, so the niche is drawn as open space.
+
+Replaces the earlier proposal for a rectangular footprint and full-length shared walls.
+Validity at 600 restarts drops slightly; the acceptance tests use 1200.
+
 ## Open items for the user
 
 1. Service yard and covered entrance (R9, R10) need a zone type each, if they should be scored.

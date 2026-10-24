@@ -21,6 +21,9 @@ const OPEN_KITCHEN_FT = roomDefaults.openKitchenWidthFt;
 const PASSAGE_PROBABILITY = 0.2;
 const MIN_SLICE_FT = 3;
 const MIN_DISTINCT = 0.35;
+/** Share of boundary rooms that get a staggered edge, and the niche depths (ft) it can leave. */
+const STAGGER_PROBABILITY = 0.15;
+const STAGGER_DEPTHS_FT = [2, 3, 4, 5];
 const FURNITURE_SHORTLIST = 60;
 /** Feet a room may grow beyond its default in each dimension (matches the room limits in engine/edit.ts). */
 export const MAX_GROWTH_FT = 2;
@@ -161,8 +164,18 @@ export function allocate(rooms: RoomSpec[], interior: Rect): Item[] {
   });
 }
 
+/**
+ * Pulls a room's outer edge in from the building envelope, leaving an open niche. The road side
+ * (y = 0 in the local frame) is never staggered, so the entrance room keeps its full frontage.
+ */
+export interface Stagger {
+  side: 'left' | 'right' | 'back';
+  ft: number;
+}
+
 export interface LeafNode {
   spec: RoomSpec;
+  stagger?: Stagger;
 }
 
 /** A cut of a rectangle into strips. `ratios` holds all but the last strip's share. */
@@ -183,7 +196,17 @@ function isLeaf(n: TreeNode): n is LeafNode {
 
 /** Builds a random slicing structure over the ordered rooms. Sizes are set later by optimise(). */
 export function buildTree(items: Item[], rand: () => number): TreeNode {
-  if (items.length === 1) return { spec: items[0].spec };
+  if (items.length === 1) {
+    const leaf: LeafNode = { spec: items[0].spec };
+    if (rand() < STAGGER_PROBABILITY) {
+      const sides: Stagger['side'][] = ['left', 'right', 'back'];
+      leaf.stagger = {
+        side: sides[Math.floor(rand() * sides.length)],
+        ft: STAGGER_DEPTHS_FT[Math.floor(rand() * STAGGER_DEPTHS_FT.length)],
+      };
+    }
+    return leaf;
+  }
   const n = items.length;
   const groups = 2 + (n >= 3 && rand() < 0.5 ? 1 : 0);
   const cuts = pickCuts(items, groups, rand);
@@ -207,10 +230,17 @@ export function buildTree(items: Item[], rand: () => number): TreeNode {
 /** Lays the tree out inside `rect`. Returns the total constraint penalty (0 means every room fits). */
 export type LeafPenalty = (spec: RoomSpec, rect: Rect) => number;
 
-export function realize(node: TreeNode, rect: Rect, out: Leaf[], penaltyOf: LeafPenalty = leafPenalty): number {
+export function realize(
+  node: TreeNode,
+  rect: Rect,
+  out: Leaf[],
+  penaltyOf: LeafPenalty = leafPenalty,
+  envelope?: Rect,
+): number {
   if (isLeaf(node)) {
-    out.push({ rect, spec: node.spec });
-    return penaltyOf(node.spec, rect);
+    const placed = node.stagger && envelope ? applyStagger(rect, node.stagger, envelope) : rect;
+    out.push({ rect: placed, spec: node.spec });
+    return penaltyOf(node.spec, placed);
   }
   const alongX = node.axis ? node.axis === 'x' : rect.w >= rect.h ? node.longBias : !node.longBias;
   const span = (alongX ? rect.w : rect.h) - (node.passage ? PASSAGE_FT : 0);
@@ -230,7 +260,7 @@ export function realize(node: TreeNode, rect: Rect, out: Leaf[], penaltyOf: Leaf
     const sub: Rect = alongX
       ? { x: rect.x + offset, y: rect.y, w: size, h: rect.h }
       : { x: rect.x, y: rect.y + offset, w: rect.w, h: size };
-    pen += realize(node.children[g], sub, out, penaltyOf);
+    pen += realize(node.children[g], sub, out, penaltyOf, envelope);
     offset += size;
     if (node.passage && g === 0) {
       const pr: Rect = alongX
@@ -245,6 +275,25 @@ export function realize(node: TreeNode, rect: Rect, out: Leaf[], penaltyOf: Leaf
 
 function quantise(ft: number): number {
   return Math.round(ft * 16) / 16;
+}
+
+/** Insets a room's outer edge if it lies on the envelope boundary; otherwise returns the rect unchanged. */
+export function applyStagger(rect: Rect, stagger: Stagger, env: Rect): Rect {
+  const near = (a: number, b: number) => Math.abs(a - b) < 1e-6;
+  const out = { ...rect };
+  if (stagger.side === 'left' && near(rect.x, env.x)) {
+    out.x += stagger.ft;
+    out.w -= stagger.ft;
+  } else if (stagger.side === 'right' && near(rect.x + rect.w, env.x + env.w)) {
+    out.w -= stagger.ft;
+  } else if (stagger.side === 'back' && near(rect.y + rect.h, env.y + env.h)) {
+    out.h -= stagger.ft;
+  } else {
+    return rect;
+  }
+  // Keep the room at least a foot across; a smaller room would fail its minimum-size check anyway.
+  if (out.w < 1 || out.h < 1) return rect;
+  return { x: quantise(out.x), y: quantise(out.y), w: quantise(out.w), h: quantise(out.h) };
 }
 
 /**
@@ -355,7 +404,7 @@ export function optimise(
   steps = OPTIMISE_STEPS,
 ): { leaves: Leaf[]; pen: number } {
   const splits = collectSplits(tree);
-  let pen = realize(tree, rect, [], penaltyOf);
+  let pen = realize(tree, rect, [], penaltyOf, rect);
   let bestPen = pen;
   const best = splits.map((n) => n.ratios.slice());
   // Simulated annealing on the strip shares: occasionally accept a worse state to escape plateaus.
@@ -371,7 +420,7 @@ export function optimise(
       node.ratios[i] = old;
       continue;
     }
-    const p2 = realize(tree, rect, [], penaltyOf);
+    const p2 = realize(tree, rect, [], penaltyOf, rect);
     if (p2 <= pen || rand() < Math.exp(-(p2 - pen) / temperature)) {
       pen = p2;
       if (pen < bestPen) {
@@ -384,7 +433,7 @@ export function optimise(
   }
   splits.forEach((n, k) => (n.ratios = best[k]));
   const leaves: Leaf[] = [];
-  pen = realize(tree, rect, leaves, penaltyOf);
+  pen = realize(tree, rect, leaves, penaltyOf, rect);
   return { leaves, pen };
 }
 
