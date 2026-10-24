@@ -428,19 +428,19 @@ export function layoutTwoBlocks(
 }
 
 /**
- * Clamps a room to its default size plus the allowed growth (2 ft; toilets 1 ft), keeping its corner.
- * Space a room gives up is left open, so no room absorbs the spare area of its strip.
+ * Caps the longer side of a room at its default plus the allowed growth (2 ft; toilets 1 ft), keeping
+ * its corner. Space given up is left open; the open share of the plot is reported for the user to judge.
  */
 function capRoom(rect: Rect, spec: RoomSpec): Rect {
   const growth = isToilet(spec.kind) ? TOILET_GROWTH_FT : MAX_GROWTH_FT;
   const longCap = Math.max(spec.defW, spec.defH) + growth;
-  const shortCap = Math.min(spec.defW, spec.defH) + growth;
+  // Only the longer side is capped; the other side may take the spare width.
   const wide = rect.w >= rect.h;
   return {
     x: rect.x,
     y: rect.y,
-    w: Math.min(rect.w, wide ? longCap : shortCap),
-    h: Math.min(rect.h, wide ? shortCap : longCap),
+    w: wide ? Math.min(rect.w, longCap) : rect.w,
+    h: wide ? rect.h : Math.min(rect.h, longCap),
   };
 }
 
