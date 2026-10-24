@@ -112,8 +112,8 @@ plot width. That is the next design step.
 
 ## Corridors
 
-A passage or hall may not be a corridor: it can be at most 15 ft long, at most 5 ft wide, and at
-most 1:3 (width to length). Layouts that break this are rejected, so a long strip like the 3.5 ft x
+A passage may not be a corridor: it can be at most 10 ft long, at most 4 ft wide, and at most
+1:2.5 (width to length). A wing hall (WIP) may be 15 ft long, 5 ft wide and 1:3. Layouts that break this are rejected, so a long strip like the 3.5 ft x
 38 ft hall in the first template review can't be chosen. See RULES.md.
 
 The fixed plan templates from the reference plans were removed, because their halls were all

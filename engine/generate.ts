@@ -28,7 +28,7 @@ const WING_WIDTH_MAX = 0.8;
 /** Width of the hall that runs along the wing's side facing the front block. */
 const WING_HALL_FT = 3.5;
 /** The hall is a passage, so it may be at most this long (the corridor rule). */
-const WING_HALL_MAX_FT = 30;
+const WING_HALL_MAX_FT = 15;
 /** Share of the hall-side wing area that the wing rooms may take; the rest is a 15 ft limit's leftover. */
 const WING_FIT_SHARE = 0.9;
 /** Chance that the wing uses the half-plot step (set back half the plot length, half the breadth wide). */

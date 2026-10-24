@@ -12,13 +12,14 @@ const VENT_FT = 2;
 const DOOR_CLEARANCE = 0.5;
 const VASTU_FLAG_BELOW = 0.6;
 /** A hall or passage may not be a corridor: no longer than this, nor wider than this, nor more than this many times its width. */
-const MAX_PASSAGE_FT = 15;
-const MAX_PASSAGE_WIDTH_FT = 5;
+const MAX_PASSAGE_FT = 10;
+const MAX_PASSAGE_WIDTH_FT = 4;
 export const SERVICE_ROOM_KINDS = new Set(['attachedToilet', 'commonToilet', 'utility', 'store', 'puja']);
-const MAX_PASSAGE_RATIO = 3;
-/** Wing halls (option 3): longer than an ordinary passage, but still narrow. */
-const WING_HALL_MAX_FT = 30;
-const WING_HALL_MAX_RATIO = 9;
+const MAX_PASSAGE_RATIO = 2.5;
+/** Wing halls: longer than an ordinary passage, and a little wider. */
+const WING_HALL_MAX_FT = 15;
+const WING_HALL_MAX_WIDTH_FT = 5;
+const WING_HALL_MAX_RATIO = 3;
 const MAIN_DOOR_FT = 3.5;
 
 const BEDROOM_KINDS = new Set(['master', 'bedroom', 'guest']);
@@ -131,9 +132,10 @@ export function evaluate(
     const short = Math.min(r.rect.w, r.rect.h);
     const maxLong = r.wingHall ? WING_HALL_MAX_FT : MAX_PASSAGE_FT;
     const maxRatio = r.wingHall ? WING_HALL_MAX_RATIO : MAX_PASSAGE_RATIO;
-    if (long > maxLong + 1e-6 || short > MAX_PASSAGE_WIDTH_FT + 1e-6 || long / short > maxRatio + 1e-6) {
+    const maxWidth = r.wingHall ? WING_HALL_MAX_WIDTH_FT : MAX_PASSAGE_WIDTH_FT;
+    if (long > maxLong + 1e-6 || short > maxWidth + 1e-6 || long / short > maxRatio + 1e-6) {
       violations.push(
-        `Passage is a corridor (${long.toFixed(1)} ft by ${short.toFixed(1)} ft); a passage must be ${MAX_PASSAGE_FT} ft or less long, ${MAX_PASSAGE_WIDTH_FT} ft or less wide, and at most 1:${MAX_PASSAGE_RATIO}`,
+        `Passage is a corridor (${long.toFixed(1)} ft by ${short.toFixed(1)} ft); a passage must be ${maxLong} ft or less long, ${maxWidth} ft or less wide, and at most 1:${maxRatio}`,
       );
     }
   }
