@@ -1,0 +1,569 @@
+<title>GharPlan Planner</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<style>
+/* Layout: one column; inputs on top, plans below, feedback last. */
+:root {
+  --bg: #f6f5f1; --fg: #1d1f1c; --muted: #5d625b; --card: #ffffff; --line: #d9dcd3;
+  --accent: #1f6b4f; --accent-fg: #ffffff; --warn: #8a5a00; --err: #a3262b;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #14160f; --fg: #eceee6; --muted: #a4a99c; --card: #1d2019; --line: #3a3f35;
+    --accent: #7fc6a4; --accent-fg: #0f2a1e; --warn: #f0c060; --err: #ff8a8e;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #14160f; --fg: #eceee6; --muted: #a4a99c; --card: #1d2019; --line: #3a3f35;
+  --accent: #7fc6a4; --accent-fg: #0f2a1e; --warn: #f0c060; --err: #ff8a8e;
+  color-scheme: dark;
+}
+body { background: var(--bg); color: var(--fg); font: 15px/1.5 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-block: 20px 32px; }
+main { max-width: 980px; margin: 0 auto; display: grid; gap: 20px; }
+h1 { margin: 0; font-size: 26px; letter-spacing: -0.01em; text-wrap: balance; }
+h2 { margin: 0; font-size: 17px; }
+p { margin: 0; color: var(--muted); }
+.card { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 18px; min-width: 0; }
+.row { display: flex; flex-wrap: wrap; gap: 12px; align-items: end; }
+label { display: grid; gap: 4px; font-size: 13px; color: var(--muted); min-width: 0; }
+input, select, textarea { font: inherit; color: var(--fg); background: var(--bg); border: 1px solid var(--line);
+  border-radius: 8px; padding: 8px 10px; min-width: 0; }
+input[type="number"] { width: 96px; font-variant-numeric: tabular-nums; }
+textarea { width: 100%; min-height: 96px; box-sizing: border-box; }
+button { font: inherit; border-radius: 8px; padding: 9px 16px; border: 1px solid var(--line); background: var(--card); color: var(--fg); cursor: pointer; }
+button.primary { background: var(--accent); color: var(--accent-fg); border-color: var(--accent); font-weight: 600; }
+button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.chips { display: flex; flex-wrap: wrap; gap: 8px; }
+.chips button { font-size: 13px; padding: 6px 10px; }
+#status { font-size: 14px; }
+#status.err { color: var(--err); }
+#messages { display: grid; gap: 6px; font-size: 14px; }
+#messages .warn { color: var(--warn); }
+#messages .err { color: var(--err); }
+.plans { display: grid; gap: 16px; grid-template-columns: repeat(auto-fit, minmax(min(100%, 300px), 1fr)); }
+.plan { display: grid; gap: 10px; align-content: start; }
+.plan svg { width: 100%; height: auto; max-width: 100%; display: block; background: #fff; border-radius: 8px; }
+.stats { font-size: 13px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.stats b { color: var(--fg); font-weight: 600; }
+.feas { margin-top: 14px; display: grid; gap: 8px; font-size: 14px; }
+.feas > div { border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; }
+.feas .verdict.err { color: var(--err); }
+.feas .verdict.warn { color: var(--warn); }
+.feas .open-area { border: 2px dashed var(--accent); background: color-mix(in srgb, var(--accent) 12%, transparent); }
+.feas .open-area b { color: var(--accent); }
+.hint { font-size: 13px; color: var(--muted); }
+tr.must td:nth-child(2) { color: var(--accent); font-weight: 600; }
+tr.must td:nth-child(2)::after { content: " · must have"; font-weight: 400; font-size: 12px; color: var(--accent); }
+.zoomable { cursor: zoom-in; border-radius: 8px; }
+.zoomable:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
+.lightbox { position: fixed; inset: 0; background: rgba(10, 12, 9, 0.82); display: grid; place-items: center; z-index: 50;
+  padding: max(12px, env(safe-area-inset-top, 0px)) max(12px, env(safe-area-inset-right, 0px)) max(12px, env(safe-area-inset-bottom, 0px)) max(12px, env(safe-area-inset-left, 0px)); }
+.lightbox[hidden] { display: none; }
+.lightbox-panel { background: var(--card); color: var(--fg); border-radius: 12px; width: min(100%, 1100px); max-height: 100%;
+  overflow: auto; padding: 16px; display: grid; gap: 12px; box-sizing: border-box; }
+.lightbox-panel svg { width: 100%; height: auto; display: block; background: #fff; border-radius: 8px; }
+.lightbox-bar { display: flex; justify-content: space-between; align-items: center; gap: 12px; }
+.table-wrap { overflow-x: auto; }
+table { border-collapse: collapse; font-size: 13px; width: 100%; min-width: 560px; }
+th, td { text-align: left; padding: 6px 8px; border-bottom: 1px solid var(--line); vertical-align: middle; }
+th { color: var(--muted); font-weight: 600; }
+td input { width: 64px; padding: 6px 8px; }
+</style>
+
+<main>
+  <header>
+    <h1>GharPlan Planner</h1>
+    <p>Rule-based house layouts for Indian plots. Pick a sample or enter your own plot, then generate.</p>
+  </header>
+
+  <section class="card" aria-labelledby="inputs-h">
+    <h2 id="inputs-h">Plot and programme</h2>
+    <div class="chips" style="margin:12px 0" id="presets"></div>
+    <div class="row">
+      <label>Frontage (ft)<input id="width" type="number" min="10" max="200" step="0.5" value="30"></label>
+      <label>Depth (ft)<input id="depth" type="number" min="10" max="200" step="0.5" value="40"></label>
+      <label>Floors
+        <select id="floors"><option value="1" selected>1 (ground)</option><option value="2">2</option></select>
+      </label>
+      <label>Staircase
+        <select id="stair"><option value="internal" selected>Internal</option><option value="external">External</option></select>
+      </label>
+      <label>Setback front (ft)<input id="sb-front" type="number" min="0" max="100" step="0.5" placeholder="table"></label>
+      <label>Setback rear (ft)<input id="sb-rear" type="number" min="0" max="100" step="0.5" placeholder="table"></label>
+      <label>Setback left (ft)<input id="sb-left" type="number" min="0" max="100" step="0.5" placeholder="table"></label>
+      <label>Setback right (ft)<input id="sb-right" type="number" min="0" max="100" step="0.5" placeholder="table"></label>
+      <label>Facing
+        <select id="facing"><option>N</option><option>NE</option><option>E</option><option>SE</option><option>S</option><option>SW</option><option>W</option><option>NW</option></select>
+      </label>
+      <label>Bedrooms
+        <select id="bhk"><option value="1">1 BHK</option><option value="2" selected>2 BHK</option><option value="3">3 BHK</option><option value="4">4 BHK</option></select>
+      </label>
+      <label>Vastu
+        <select id="vastu"><option value="none">None</option><option value="moderate" selected>Moderate</option><option value="strict">Strict</option></select>
+      </label>
+      <label>Cars
+        <select id="cars"><option value="0">0</option><option value="1">1</option></select>
+      </label>
+      <label>Two-wheelers
+        <select id="wheelers"><option value="0">0</option><option value="1">1</option><option value="2">2</option></select>
+      </label>
+      <button id="analyse">Analyse plot and programme</button>
+    </div>
+  </section>
+
+  <section class="card" aria-labelledby="space-h">
+    <h2 id="space-h">Space check</h2>
+    <div id="space" class="stats" style="font-size:14px;display:grid;gap:8px"></div>
+  </section>
+
+  <section class="card" aria-labelledby="sizes-h" id="sizes-card" hidden>
+    <h2 id="sizes-h">Room sizes (ft)</h2>
+    <p class="hint">Filled from the plot size and programme. Each room is at least its engine minimum (toilets 1 ft under their size) and at most +15% per side, and rooms may be rotated. Untick a room to leave it out of the plan.</p>
+    <div class="row" style="margin-top:10px"><button type="button" id="fill">Fill from plot size</button><span class="hint" id="fill-note"></span></div>
+    <div class="table-wrap" style="margin-top:10px"><table>
+      <thead><tr><th>In plan</th><th>Room</th><th>Width (ft)</th><th>Depth (ft)</th></tr></thead>
+      <tbody id="sizes"></tbody>
+    </table></div>
+    <div id="feasibility" class="feas" aria-live="polite"></div>
+  </section>
+
+  <div class="lightbox" id="lightbox" hidden role="dialog" aria-modal="true" aria-labelledby="lightbox-title">
+  <div class="lightbox-panel" id="lightbox-panel">
+    <div class="lightbox-bar"><h2 id="lightbox-title">Plan</h2><button type="button" id="lightbox-close">Close</button></div>
+    <div id="lightbox-body"></div>
+  </div>
+</div>
+
+  <section class="card" id="generate-card" hidden aria-labelledby="gen-h">
+    <h2 id="gen-h">Generate plans</h2>
+    <p class="hint">Uses the plot, programme, setbacks and room sizes above.</p>
+    <div class="row" style="margin-top:10px"><button class="primary" id="go">Generate plans</button></div>
+  </section>
+
+  <section aria-live="polite" class="card" id="result-card" hidden>
+    <div id="status"></div>
+    <div id="messages"></div>
+  </section>
+
+  <section class="plans" id="plans" aria-label="Generated plans"></section>
+
+  <section class="card" aria-labelledby="fb-h">
+    <h2 id="fb-h">Feedback</h2>
+    <p class="hint">Note what to change (room sizes, placement, a rule). Copy it and send it back.</p>
+    <div style="display:grid;gap:10px;margin-top:10px">
+      <textarea id="fb" placeholder="For example: kitchen should face the road; toilets too big."></textarea>
+      <div class="row"><button id="copy">Copy feedback</button><span class="hint" id="copied" aria-live="polite"></span></div>
+    </div>
+  </section>
+</main>
+
+<script>/*ENGINE*/</script>
+<script>
+(function () {
+  var GP = window.GP;
+  var $ = function (id) { return document.getElementById(id); };
+  var cfg = GP.roomDefaults.rooms;
+  var VAR = GP.roomDefaults.sizeVariation || { minFactor: 0.95, maxFactor: 1.15 };
+  var defaults = GP.defaultInput();
+
+  // Room rows. `flag` is the programme switch the row controls; rows with no flag are always in the plan.
+  var ROOMS = [
+    { key: 'living', label: 'Living', mandatory: true },
+    { key: 'master', label: 'Master bedroom', mandatory: true },
+    { key: 'kitchen', label: 'Kitchen', mandatory: true },
+    { key: 'dining', label: 'Dining', flag: 'dining' },
+    { key: 'bedroom', label: 'Bedroom', needsBhk: 2 },
+    { key: 'attachedToilet', label: 'Attached toilet', mandatory: true },
+    { key: 'commonToilet', label: 'Common toilet', flag: 'commonToilet' },
+    { key: 'guest', label: 'Guest bedroom', flag: 'guestBedroom' },
+    { key: 'study', label: 'Study', flag: 'study' },
+    { key: 'puja', label: 'Puja', flag: 'puja' },
+    { key: 'store', label: 'Store', flag: 'store' },
+    { key: 'utility', label: 'Utility', flag: 'utility' },
+    { key: 'stair', label: 'Staircase', needsStair: true }
+  ];
+  // Optional rooms, dropped in this order when the programme does not fit the buildable area.
+  var DROP_ORDER = ['utility', 'store', 'puja', 'study', 'guest', 'commonToilet'];
+
+  function setFromInputs(input) {
+    SETBACK_SIDES.forEach(function (side) {
+      $('sb-' + side).value = input.setbacks && input.setbacks[side] !== undefined ? input.setbacks[side] : '';
+    });
+    $('width').value = input.width; $('depth').value = input.depth; $('facing').value = input.facing;
+    $('bhk').value = String(input.bhk); $('vastu').value = input.vastu;
+    $('cars').value = String(input.parking.cars); $('wheelers').value = String(input.parking.twoWheelers);
+    $('floors').value = String(input.floors); $('stair').value = input.staircase;
+  }
+
+  var SETBACK_SIDES = ['front', 'rear', 'left', 'right'];
+
+  // Setback overrides in feet; a blank box keeps the value from the setback table.
+  function readSetbacks() {
+    var out = {};
+    SETBACK_SIDES.forEach(function (side) {
+      var v = $('sb-' + side).value;
+      if (v !== '' && Number(v) >= 0) out[side] = Number(v);
+    });
+    return Object.keys(out).length ? out : undefined;
+  }
+
+  // Shows the table's setbacks as hints in the empty boxes.
+  function showSetbackHints() {
+    var table = GP.buildFrame(Object.assign({}, baseInput(), { setbacks: undefined })).setbacks;
+    SETBACK_SIDES.forEach(function (side) { $('sb-' + side).placeholder = String(table[side]); });
+  }
+
+  // Input from the plot and programme controls only.
+  function baseInput() {
+    var bhk = Number($('bhk').value);
+    return Object.assign({}, defaults, {
+      width: Number($('width').value), depth: Number($('depth').value), facing: $('facing').value,
+      setbacks: readSetbacks(),
+      bhk: bhk, vastu: $('vastu').value,
+      floors: Number($('floors').value) === 2 ? 2 : 1, staircase: $('stair').value,
+      parking: { cars: Number($('cars').value), twoWheelers: Number($('wheelers').value) },
+      attachedToilets: defaults.attachedToilets.map(function (v, i) { return i < bhk; })
+    });
+  }
+
+  function readSizes() {
+    var out = {};
+    ROOMS.forEach(function (r) {
+      if (!r.mandatory && !$('use-' + r.key).checked) return;
+      var w = Number($('rs-' + r.key + '-defW').value), h = Number($('rs-' + r.key + '-defH').value);
+      if (w > 0 && h > 0) out[r.key] = { defW: w, defH: h };
+    });
+    return out;
+  }
+
+  // Full engine input: plot and programme, the room switches, and the sizes in the table.
+  function readInput() {
+    var input = baseInput();
+    var rooms = Object.assign({}, defaults.rooms);
+    ROOMS.forEach(function (r) { if (r.flag) rooms[r.flag] = $('use-' + r.key).checked; });
+    input.rooms = rooms;
+    input.roomSizes = readSizes();
+    return input;
+  }
+
+  function addText(parent, tag, text, cls) {
+    var el = document.createElement(tag);
+    el.textContent = text;
+    if (cls) el.className = cls;
+    parent.appendChild(el);
+    return el;
+  }
+
+  function buildSizeRows() {
+    var body = $('sizes');
+    ROOMS.forEach(function (r) {
+      var tr = document.createElement('tr');
+      var useTd = document.createElement('td');
+      var box = document.createElement('input');
+      box.type = 'checkbox';
+      box.id = 'use-' + r.key;
+      box.setAttribute('aria-label', 'Include ' + r.label);
+      box.addEventListener('change', function () {
+        if (r.mandatory && !box.checked) $('fill-note').textContent = r.label + ' is a must-have space. It stays in the plan.';
+      });
+      if (r.mandatory) { box.checked = true; tr.classList.add('must'); }
+      useTd.appendChild(box);
+      tr.appendChild(useTd);
+      addText(tr, 'td', r.label);
+      ['defW', 'defH'].forEach(function (field) {
+        var td = document.createElement('td');
+        var input = document.createElement('input');
+        input.type = 'number';
+        input.min = '1';
+        input.step = '0.5';
+        input.id = 'rs-' + r.key + '-' + field;
+        input.setAttribute('aria-label', r.label + (field === 'defW' ? ' width' : ' depth'));
+        td.appendChild(input);
+        tr.appendChild(td);
+      });
+      body.appendChild(tr);
+    });
+  }
+
+  // Fills the room table from the plot: picks the rooms that fit, then sizes them to use the buildable area.
+  // Smallest size the engine accepts: toilets 1 ft under their own size, other rooms the config minimum.
+  var TOILET_KEYS = { attachedToilet: true, commonToilet: true };
+  function minOf(key, defW, defH) {
+    if (TOILET_KEYS[key]) return { w: defW - 1, h: defH - 1 };
+    return { w: cfg[key].minW, h: cfg[key].minH };
+  }
+
+  function autoFill() {
+    var input = baseInput();
+    var frame = GP.buildFrame(input);
+    var buildable = frame.buildable.w * frame.buildable.h;
+    var target = buildable * Math.min(0.92, 1 - (input.openSpacePct || 0) / 100);
+    var include = {};
+    ROOMS.forEach(function (r) {
+      if (r.mandatory) include[r.key] = true;
+      else if (r.needsBhk) include[r.key] = input.bhk >= r.needsBhk;
+      else if (r.needsStair) include[r.key] = input.floors === 2 && input.staircase === 'internal';
+      else include[r.key] = !!defaults.rooms[r.flag];
+    });
+    // Smallest programme area: every included room at its engine minimum.
+    var minArea = function () {
+      return ROOMS.reduce(function (sum, r) {
+        if (!include[r.key]) return sum;
+        var m = minOf(r.key, cfg[r.key].defW, cfg[r.key].defH);
+        return sum + m.w * m.h;
+      }, 0);
+    };
+    var dropped = [];
+    var i = 0;
+    // Drop optional rooms until the smallest programme fits the target.
+    while (minArea() > target && i < DROP_ORDER.length) {
+      if (include[DROP_ORDER[i]]) { include[DROP_ORDER[i]] = false; dropped.push(DROP_ORDER[i]); }
+      i++;
+    }
+    // Each room at scale × default, never below its engine minimum.
+    var dims = function (key, scale) {
+      var w = Math.round(cfg[key].defW * scale * 2) / 2;
+      var h = Math.round(cfg[key].defH * scale * 2) / 2;
+      var m = minOf(key, w, h);
+      return { w: Math.max(w, m.w), h: Math.max(h, m.h) };
+    };
+    var areaAt = function (scale) {
+      return ROOMS.reduce(function (sum, r) {
+        if (!include[r.key]) return sum;
+        var d = dims(r.key, scale);
+        return sum + d.w * d.h;
+      }, 0);
+    };
+    var defaultArea = areaAt(1);
+    var scale = Math.min(VAR.maxFactor, Math.sqrt(target / defaultArea));
+    var used = areaAt(scale);
+    var minimum = minArea();
+    var note = minimum > buildable
+      ? 'Does not fit even after leaving optional rooms out.'
+      : used > target
+        ? 'Fits only at the smallest sizes, which leaves less than ' + (input.openSpacePct || 0) + '% open.'
+        : 'Sized to about ' + Math.round(used / buildable * 100) + '% of the buildable area.';
+    if (dropped.length) note += ' Left out to fit: ' + dropped.join(', ') + '.';
+    ROOMS.forEach(function (r) {
+      $('use-' + r.key).checked = !!include[r.key];
+      var w = $('rs-' + r.key + '-defW'), h = $('rs-' + r.key + '-defH');
+      if (include[r.key]) {
+        var d = dims(r.key, scale);
+        w.value = d.w;
+        h.value = d.h;
+      } else {
+        w.value = ''; h.value = '';
+      }
+      w.disabled = h.disabled = !include[r.key];
+      $('use-' + r.key).disabled = false;
+    });
+    $('fill-note').textContent = note;
+  }
+
+  // Feasibility for the room sizes in the table, with the open area they leave.
+  function sizesFeasibility() {
+    var input = readInput();
+    var frame = GP.buildFrame(input);
+    var plotArea = input.width * input.depth;
+    var buildable = frame.buildable.w * frame.buildable.h;
+    var need = 0, needMin = 0, count = 0;
+    Object.keys(input.roomSizes).forEach(function (k) {
+      var s = input.roomSizes[k];
+      count++;
+      need += s.defW * s.defH;
+      var m = minOf(k, s.defW, s.defH);
+      needMin += m.w * m.h;
+    });
+    var open = buildable - need;
+    var openPct = input.openSpacePct || 0;
+    var required = buildable * openPct / 100;
+    var box = $('feasibility');
+    box.textContent = '';
+    var verdict, tone;
+    if (!count) { verdict = 'Add at least one room to check feasibility.'; tone = 'warn'; }
+    else if (needMin > buildable) { verdict = 'Not feasible. At their minimum sizes these ' + count + ' rooms need ' + Math.round(needMin) + ' sq ft, but the buildable area is ' + Math.round(buildable) + ' sq ft. Reduce sizes or untick a room.'; tone = 'err'; }
+    else if (need > buildable) { verdict = 'Tight. These sizes need ' + Math.round(need) + ' sq ft against ' + Math.round(buildable) + ' sq ft buildable. Feasible only if the rooms are sized down toward their minimums.'; tone = 'warn'; }
+    else { verdict = 'Feasible. These ' + count + ' rooms use ' + Math.round(need) + ' sq ft of the ' + Math.round(buildable) + ' sq ft buildable area.'; tone = ''; }
+    addText(box, 'div', verdict, 'verdict ' + tone);
+    if (count && needMin <= buildable) {
+      var area = document.createElement('div');
+      area.className = 'open-area';
+      area.innerHTML = 'Possible open area: <b>about ' + Math.max(0, Math.round(open)) + ' sq ft</b> (' +
+        Math.max(0, Math.round(open / buildable * 100)) + '% of buildable, ' + Math.max(0, Math.round(open / plotArea * 100)) + '% of plot).';
+      box.appendChild(area);
+      if (openPct > 0 && open < required) {
+        addText(box, 'div', 'Less open space than the ' + openPct + "% you asked for (about " + Math.round(required) + ' sq ft). Reduce room sizes to leave it.', 'verdict warn');
+      }
+    }
+  }
+
+  function spaceCheck() {
+    var input = readInput();
+    var frame = GP.buildFrame(input);
+    var program = GP.buildProgram(input);
+    var plotArea = input.width * input.depth;
+    var buildable = frame.buildable.w * frame.buildable.h;
+    var need = 0, needMin = 0;
+    program.rooms.forEach(function (r) {
+      if (r.kind === 'passage') return;
+      need += r.defW * r.defH;
+      needMin += r.minW * r.minH;
+    });
+    var pct = function (x) { return Math.round(x / plotArea * 100); };
+    var verdict, tone;
+    if (needMin > buildable) { verdict = 'Does not fit. At their minimum sizes the rooms need ' + Math.round(needMin) + ' sq ft, but the buildable area is ' + Math.round(buildable) + ' sq ft. Remove a room or enlarge the plot.'; tone = 'err'; }
+    else if (need > buildable) { verdict = 'Tight. Rooms fit only near their minimum sizes (need ' + Math.round(need) + ' sq ft at default, ' + Math.round(buildable) + ' sq ft buildable).'; tone = 'warn'; }
+    else { verdict = 'Fits at default sizes.'; tone = ''; }
+    var open = buildable - need;
+    var box = $('space');
+    box.textContent = '';
+    [
+      ['Plot area', Math.round(plotArea) + ' sq ft'],
+      ['Buildable area after setbacks', Math.round(buildable) + ' sq ft (' + pct(buildable) + '% of plot)'],
+      ['Programme at default sizes', Math.round(need) + ' sq ft']
+    ].forEach(function (row) {
+      var d = document.createElement('div');
+      d.innerHTML = row[0] + ': <b>' + row[1] + '</b>';
+      box.appendChild(d);
+    });
+    addText(box, 'div', verdict, tone);
+    if (open > 0) {
+      addText(box, 'div', 'Open space left over: about ' + Math.round(open) + ' sq ft (' + pct(open) + '% of the plot).' +
+        (pct(open) > 25 ? ' That is more than 25% of the plot, so the planner needs your decision on how to use it.' : ''));
+    }
+    sizesFeasibility();
+  }
+
+  function render(res) {
+    var status = $('status'), messages = $('messages'), plans = $('plans');
+    $('result-card').hidden = false;
+    messages.textContent = '';
+    plans.textContent = '';
+    status.className = '';
+    if (res.errors.length) {
+      status.className = 'err';
+      status.textContent = 'No plans to show.';
+      res.errors.forEach(function (e) { addText(messages, 'div', e, 'err'); });
+    } else {
+      status.textContent = res.layouts.length + ' plan' + (res.layouts.length === 1 ? '' : 's') + ' generated.';
+    }
+    res.warnings.forEach(function (w) { addText(messages, 'div', w, 'warn'); });
+    res.layouts.forEach(function (l) {
+      var card = document.createElement('article');
+      card.className = 'card plan';
+      addText(card, 'h2', 'Plan ' + l.id);
+      var sc = l.scorecard;
+      var stats = document.createElement('div');
+      stats.className = 'stats';
+      var plotArea = l.frame.width * l.frame.depth;
+      stats.innerHTML = 'Plot <b>' + Math.round(plotArea) + ' sq ft</b> · Built-up <b>' + Math.round(sc.builtUpArea) +
+        ' sq ft</b> · Carpet <b>' + Math.round(sc.carpetArea) + ' sq ft</b> · Score <b>' + Math.round(sc.total) + '</b>';
+      card.appendChild(stats);
+      var wrap = document.createElement('div');
+      wrap.className = 'zoomable';
+      wrap.tabIndex = 0;
+      wrap.setAttribute('role', 'button');
+      wrap.setAttribute('aria-label', 'Enlarge plan ' + l.id);
+      var svgMarkup = GP.sceneToSvg(GP.planScene(l, { unit: 'ftin' }));
+      wrap.innerHTML = svgMarkup;
+      var open = function () { openLightbox('Plan ' + l.id, svgMarkup); };
+      wrap.addEventListener('click', open);
+      wrap.addEventListener('keydown', function (e) { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); open(); } });
+      card.appendChild(wrap);
+      (l.warnings || []).slice(0, 4).forEach(function (w) { addText(card, 'div', w, 'hint'); });
+      plans.appendChild(card);
+    });
+  }
+
+  var lightbox = $('lightbox');
+  var lastFocus = null;
+  function openLightbox(title, svgMarkup) {
+    lastFocus = document.activeElement;
+    $('lightbox-title').textContent = title;
+    $('lightbox-body').innerHTML = svgMarkup;
+    lightbox.hidden = false;
+    $('lightbox-close').focus();
+  }
+  function closeLightbox() {
+    lightbox.hidden = true;
+    $('lightbox-body').textContent = '';
+    if (lastFocus && lastFocus.focus) lastFocus.focus();
+  }
+  $('lightbox-close').addEventListener('click', closeLightbox);
+  lightbox.addEventListener('click', function (e) { if (e.target === lightbox) closeLightbox(); });
+  document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && !lightbox.hidden) closeLightbox(); });
+
+  function generate() {
+    var status = $('status');
+    $('result-card').hidden = false;
+    status.className = '';
+    status.textContent = 'Generating plans. This can take up to a minute.';
+    $('messages').textContent = '';
+    $('plans').textContent = '';
+    setTimeout(function () {
+      try {
+        render(GP.generatePlans(readInput(), { count: 3, restarts: 600 }));
+      } catch (e) {
+        status.className = 'err';
+        status.textContent = 'Something went wrong: ' + (e && e.message ? e.message : e);
+      }
+    }, 50);
+  }
+
+  function fillAndCheck() { showSetbackHints(); autoFill(); spaceCheck(); }
+
+  // Room sizes appear once the plot and programme have been analysed.
+  var analysed = false;
+  function analyse() {
+    analysed = true;
+    $('sizes-card').hidden = false;
+    $('generate-card').hidden = false;
+    fillAndCheck();
+    $('fill-note').textContent = 'Analysed. ' + $('fill-note').textContent;
+    $('sizes-card').scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+
+  // Sample plots.
+  var chips = $('presets');
+  GP.ACCEPTANCE_CASES.forEach(function (p) {
+    var b = document.createElement('button');
+    b.type = 'button';
+    b.textContent = p.name.replace(/^\d+\.\s*/, '');
+    b.addEventListener('click', function () { setFromInputs(p.input); analyse(); generate(); });
+    chips.appendChild(b);
+  });
+
+  buildSizeRows();
+  setFromInputs(defaults);
+  ['width', 'depth', 'bhk', 'floors', 'stair', 'facing', 'sb-front', 'sb-rear', 'sb-left', 'sb-right'].forEach(function (id) {
+    $(id).addEventListener('change', function () { if (analysed) fillAndCheck(); });
+    $(id).addEventListener('input', function () { if (analysed) fillAndCheck(); });
+  });
+  ['vastu', 'cars', 'wheelers'].forEach(function (id) {
+    $(id).addEventListener('change', spaceCheck);
+  });
+  document.querySelectorAll('#sizes input').forEach(function (el) {
+    el.addEventListener('change', spaceCheck);
+    el.addEventListener('input', spaceCheck);
+  });
+  $('fill').addEventListener('click', fillAndCheck);
+  $('analyse').addEventListener('click', analyse);
+  $('go').addEventListener('click', function () { if (!analysed) analyse(); generate(); });
+  showSetbackHints();
+  spaceCheck();
+
+  $('copy').addEventListener('click', function () {
+    var text = $('fb');
+    var note = $('copied');
+    var fallback = function () { text.select(); note.textContent = 'Select the text and copy it.'; };
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text.value).then(function () { note.textContent = 'Copied.'; }, fallback);
+    } else {
+      fallback();
+    }
+  });
+})();
+</script>
