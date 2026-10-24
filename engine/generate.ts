@@ -430,10 +430,8 @@ export function layoutTwoBlocks(
  * corner. Space given up is left open; the open share of the plot is reported for the user to judge.
  */
 function capRoom(rect: Rect, spec: RoomSpec): Rect {
-  const growth = isToilet(spec.kind) ? TOILET_GROWTH_FT : MAX_GROWTH_FT;
-  const longCap = Math.max(spec.defW, spec.defH) + growth;
-  // Only the longer side is capped; the other side may take the spare width.
-  const shortCap = Math.min(spec.defW, spec.defH) + growth;
+  const longCap = Math.max(spec.defW, spec.defH) * roomDefaults.sizeVariation.maxFactor;
+  const shortCap = Math.min(spec.defW, spec.defH) * roomDefaults.sizeVariation.maxFactor;
   const wide = rect.w >= rect.h;
   return {
     x: rect.x,
@@ -617,8 +615,8 @@ function toiletOversize(spec: RoomSpec, rect: Rect): number {
   const short = Math.min(rect.w, rect.h);
   const long = Math.max(rect.w, rect.h);
   return (
-    Math.max(0, long - (Math.max(spec.defW, spec.defH) + TOILET_GROWTH_FT)) +
-    Math.max(0, short - (Math.min(spec.defW, spec.defH) + TOILET_GROWTH_FT))
+    Math.max(0, long - Math.max(spec.defW, spec.defH) * roomDefaults.sizeVariation.maxFactor) +
+    Math.max(0, short - Math.min(spec.defW, spec.defH) * roomDefaults.sizeVariation.maxFactor)
   );
 }
 

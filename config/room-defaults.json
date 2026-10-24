@@ -161,6 +161,11 @@
       "source": "Groot Parys: passage 1.0 m wide, 4-7 m long; Kanpur: 1.83 m passage"
     }
   },
+  "sizeVariation": {
+    "source": "Client rule: each side of a room may be 5% under or 10% over its default. Rooms may be rotated.",
+    "minFactor": 0.95,
+    "maxFactor": 1.1
+  },
   "windowWidthFt": 4,
   "ventilatorWidthFt": 2,
   "mainDoorWidthFt": 3.5,

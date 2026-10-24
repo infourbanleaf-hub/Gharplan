@@ -1,3 +1,4 @@
+import roomDefaults from '../config/room-defaults.json';
 import type { Frame, PlacedRoom, PlotInput, RoomSpec, Rect, Scorecard, Side } from './types';
 import { roomConfig } from './program';
 import { contains, overlaps, rectArea, sharedEdge, exteriorSides } from './geometry';
@@ -258,8 +259,8 @@ export function evaluate(
   if (livingHard && livingSpec) {
     const long = Math.max(livingHard.rect.w, livingHard.rect.h);
     const short = Math.min(livingHard.rect.w, livingHard.rect.h);
-    const maxLong = Math.max(livingSpec.defW, livingSpec.defH) + LIVING_MAX_GROWTH_FT;
-    const maxShort = Math.min(livingSpec.defW, livingSpec.defH) + LIVING_MAX_GROWTH_FT;
+    const maxLong = Math.max(livingSpec.defW, livingSpec.defH) * roomDefaults.sizeVariation.maxFactor;
+    const maxShort = Math.min(livingSpec.defW, livingSpec.defH) * roomDefaults.sizeVariation.maxFactor;
     if (long > maxLong + 1e-6 || short > maxShort + 1e-6) {
       violations.push(`Living room is larger than its default plus ${LIVING_MAX_GROWTH_FT} ft`);
     }
@@ -272,10 +273,10 @@ export function evaluate(
     if (!spec) continue;
     const long = Math.max(r.rect.w, r.rect.h);
     const short = Math.min(r.rect.w, r.rect.h);
-    const longCap = Math.max(spec.defW, spec.defH) + TOILET_GROWTH_FT;
-    const shortCap = Math.min(spec.defW, spec.defH) + TOILET_GROWTH_FT;
+    const longCap = Math.max(spec.defW, spec.defH) * roomDefaults.sizeVariation.maxFactor;
+    const shortCap = Math.min(spec.defW, spec.defH) * roomDefaults.sizeVariation.maxFactor;
     if (r.area > TOILET_MAX_AREA_FACTOR * spec.defW * spec.defH + 1e-6 || long > longCap + 1e-6 || short > shortCap + 1e-6) {
-      violations.push(`${r.label} is larger than its default size (at most ${TOILET_GROWTH_FT} ft more each way)`);
+      violations.push(`${r.label} is larger than its default size (at most ${Math.round((roomDefaults.sizeVariation.maxFactor - 1) * 100)}% more each way)`);
     }
   }
 

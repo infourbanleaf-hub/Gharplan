@@ -1,3 +1,4 @@
+import roomDefaults from '../config/room-defaults.json';
 // Basic room editing. A room keeps its top-left corner and takes a new width and height,
 // clamped to its limits. Nothing else moves: the layout is re-checked and every broken rule is
 // returned so the user can see what to fix.
@@ -39,7 +40,7 @@ function specsFor(input: PlotInput): Map<string, RoomSpec> {
 export function roomLimits(input: PlotInput, roomId: string): RoomLimits | null {
   const spec = specsFor(input).get(roomId);
   if (!spec) return null;
-  return { minW: spec.minW, minH: spec.minH, maxW: spec.defW + MAX_GROWTH, maxH: spec.defH + MAX_GROWTH };
+  return { minW: spec.minW, minH: spec.minH, maxW: spec.defW * roomDefaults.sizeVariation.maxFactor, maxH: spec.defH * roomDefaults.sizeVariation.maxFactor };
 }
 
 /** Returns a copy of the layout with the edited rooms resized and every derived value refreshed. */
