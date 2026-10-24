@@ -6,7 +6,7 @@ export const LIMITS = {
   plotFt: { min: 10, max: 200 },
   setbackFt: { min: 0, max: 100 },
   roomFt: { min: 2, max: 60 },
-  openSpacePct: { min: 0, max: 30 },
+  openSpacePct: { min: 0, max: 100 },
 } as const;
 
 export function validatePlotInput(input: PlotInput): string[] {
