@@ -29,6 +29,8 @@ const WING_WIDTH_MAX = 0.8;
 const WING_KINDS = new Set(['master', 'bedroom', 'guest', 'attachedToilet', 'study']);
 /** Wing rooms may be this many feet under their minimum size, so a setback notch can be absorbed. */
 const WING_MIN_RELAX_FT = 2;
+/** Shallowest back band in the front block (dining, common toilet, utility, store). */
+const BACK_BAND_MIN_FT = 8;
 const WING_MIN_SHARE = 0.25;
 const WING_MAX_SHARE = 0.6;
 const FURNITURE_SHORTLIST = 60;
@@ -197,12 +199,18 @@ export function isStepped(cand: Candidate, frame: Frame): boolean {
  * Splits the envelope into a front block across the whole depth and a wing at one side, set back
  * from the rear edge. The front block keeps the road frontage (y = 0), so the entrance room is not cut.
  */
-export function footprintBlocks(env: Rect, wingWeightShare: number, rand: () => number): { front: Rect; wing: Rect } {
+export function footprintBlocks(
+  env: Rect,
+  wingWeightShare: number,
+  rand: () => number,
+  minFrontW = 0,
+): { front: Rect; wing: Rect } {
   const setback = WING_SETBACK_FT[Math.floor(rand() * WING_SETBACK_FT.length)];
   // The wing is shallower than the envelope by its setback, so it needs a wider share of the width
   // to hold the same share of the rooms.
   const widthShare = (wingWeightShare * env.h) / (env.h - setback);
-  const wingW = quantise(env.w * Math.min(WING_WIDTH_MAX, Math.max(WING_WIDTH_MIN, widthShare)));
+  // The front block keeps at least `minFrontW` so its road-side rooms fit side by side.
+  const wingW = quantise(Math.min(env.w - minFrontW, env.w * Math.min(WING_WIDTH_MAX, Math.max(WING_WIDTH_MIN, widthShare))));
   const wingLeft = rand() < 0.5;
   const frontW = env.w - wingW;
   return {
@@ -228,7 +236,23 @@ function splitWing(items: Item[]): { front: Item[]; wing: Item[] } {
   return { front: items.slice(0, items.length - wing.length), wing };
 }
 
-/** Lays out a two-block footprint: each block is optimised on its own rectangle. */
+/** Rooms that must open onto the road: living and kitchen sit in the road band. */
+const ROAD_KINDS = new Set(['living', 'kitchen']);
+
+/** Forces every strip of a tree to run along x, so each leaf keeps the full height of its band. */
+function stripsAlongX(node: TreeNode): TreeNode {
+  if (isLeaf(node)) return node;
+  node.axis = 'x';
+  node.children.forEach(stripsAlongX);
+  return node;
+}
+
+/**
+ * Zone-aware two-block layout. The front block is cut into a road band (living and kitchen, both
+ * touching the road) and a back band (dining, common toilet, utility and the rest), so dining sits
+ * above the living room. The wing holds the bedrooms and their toilets. Each band is optimised on
+ * its own rectangle.
+ */
 export function layoutTwoBlocks(
   items: Item[],
   env: Rect,
@@ -236,24 +260,43 @@ export function layoutTwoBlocks(
   chainRand: () => number,
   penaltyOf: LeafPenalty,
 ): { leaves: Leaf[]; pen: number } {
-  const { front, wing } = splitWing(items);
-  if (front.length === 0 || wing.length === 0) return { leaves: [], pen: INFEASIBLE_COST };
-  // Split the width by the minimum areas each block must hold (the wing's allowance included).
+  const road = items.filter((it) => ROAD_KINDS.has(it.spec.kind));
+  const wing = items.filter((it) => WING_KINDS.has(it.spec.kind));
+  const back = items.filter((it) => !ROAD_KINDS.has(it.spec.kind) && !WING_KINDS.has(it.spec.kind));
+  if (road.length === 0 || wing.length === 0) return { leaves: [], pen: INFEASIBLE_COST };
+
+  // Size the blocks by the minimum areas each must hold (the wing's allowance included).
   const minArea = (it: Item, relax: number) => Math.max(0, it.spec.minW - relax) * Math.max(0, it.spec.minH - relax);
-  const needFront = front.reduce((s, it) => s + minArea(it, 0), 0);
+  const needRoad = road.reduce((s, it) => s + minArea(it, 0), 0);
+  const needBack = back.reduce((s, it) => s + minArea(it, 0), 0);
   const needWing = wing.reduce((s, it) => s + minArea(it, WING_MIN_RELAX_FT), 0);
-  const wingShare = needWing / (needFront + needWing);
-  const blocks = footprintBlocks(env, wingShare, structRand);
+  const wingShare = needWing / (needRoad + needBack + needWing);
+  const roadW = road.reduce((s, it) => s + it.spec.minW, 0) + 1;
+  const blocks = footprintBlocks(env, wingShare, structRand, roadW);
+  // The back band takes the depth its rooms need; the road band keeps the rest.
+  const backH = back.length === 0 ? 0 : Math.max(BACK_BAND_MIN_FT, ...back.map((it) => it.spec.minH));
+  const roadH = blocks.front.h - backH;
+  const roadRect = { ...blocks.front, h: roadH };
+  const backRect = { ...blocks.front, y: blocks.front.y + roadH, h: blocks.front.h - roadH };
+
   // Toilets keep their full minimum sizes; the other wing rooms get the allowance.
   const allowanceOf = (spec: RoomSpec) => (isToilet(spec.kind) ? 0 : WING_MIN_RELAX_FT);
   const relaxed: LeafPenalty = (spec, rect) =>
     penaltyOf({ ...spec, minW: spec.minW - allowanceOf(spec), minH: spec.minH - allowanceOf(spec) }, rect);
-  const a = optimise(buildTree(front, structRand), blocks.front, chainRand, penaltyOf);
+
+  const a = optimise(stripsAlongX(buildTree(road, structRand)), roadRect, chainRand, penaltyOf);
+  const parts = [a];
+  if (back.length > 0) {
+    parts.push(optimise(stripsAlongX(buildTree(back, structRand)), backRect, chainRand, penaltyOf));
+  }
   const b = optimise(buildTree(wing, structRand), blocks.wing, chainRand, relaxed);
   const wingLeaves = b.leaves.map((leaf) =>
     leaf.spec && allowanceOf(leaf.spec) > 0 ? { ...leaf, minRelaxFt: WING_MIN_RELAX_FT } : leaf,
   );
-  return { leaves: [...a.leaves, ...wingLeaves], pen: a.pen + b.pen };
+  return {
+    leaves: [...parts.flatMap((x) => x.leaves), ...wingLeaves],
+    pen: parts.reduce((s, x) => s + x.pen, 0) + b.pen,
+  };
 }
 
 /** A cut of a rectangle into strips. `ratios` holds all but the last strip's share. */
