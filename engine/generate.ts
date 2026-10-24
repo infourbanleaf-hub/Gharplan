@@ -25,6 +25,8 @@ const MIN_DISTINCT = 0.35;
 const WING_SETBACK_FT = [4, 5, 6, 7, 8];
 const WING_WIDTH_MIN = 0.3;
 const WING_WIDTH_MAX = 0.8;
+/** Chance that the wing uses the half-plot step (set back half the plot length, half the breadth wide). */
+const HALF_PLOT_CHANCE = 0.25;
 /** Rooms that go in the wing when the room list allows it (bedrooms and their toilets). */
 const WING_KINDS = new Set(['master', 'bedroom', 'guest', 'attachedToilet', 'study']);
 /** Wing rooms may be this many feet under their minimum size, so a setback notch can be absorbed. */
@@ -205,12 +207,15 @@ export function footprintBlocks(
   rand: () => number,
   minFrontW = 0,
 ): { front: Rect; wing: Rect } {
-  const setback = WING_SETBACK_FT[Math.floor(rand() * WING_SETBACK_FT.length)];
+  // Half-plot option: the wing is set back by half the plot length and is half the plot breadth wide.
+  const halfPlot = rand() < HALF_PLOT_CHANCE;
+  const setback = halfPlot ? quantise(env.h / 2) : WING_SETBACK_FT[Math.floor(rand() * WING_SETBACK_FT.length)];
   // The wing is shallower than the envelope by its setback, so it needs a wider share of the width
   // to hold the same share of the rooms.
   const widthShare = (wingWeightShare * env.h) / (env.h - setback);
+  const wantedW = halfPlot ? env.w / 2 : env.w * Math.min(WING_WIDTH_MAX, Math.max(WING_WIDTH_MIN, widthShare));
   // The front block keeps at least `minFrontW` so its road-side rooms fit side by side.
-  const wingW = quantise(Math.min(env.w - minFrontW, env.w * Math.min(WING_WIDTH_MAX, Math.max(WING_WIDTH_MIN, widthShare))));
+  const wingW = quantise(Math.min(env.w - minFrontW, wantedW));
   const wingLeft = rand() < 0.5;
   const frontW = env.w - wingW;
   return {
