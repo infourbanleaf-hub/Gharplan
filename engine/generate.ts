@@ -19,6 +19,10 @@ const VENT_FT = roomDefaults.ventilatorWidthFt;
 const MAIN_DOOR_FT = roomDefaults.mainDoorWidthFt;
 const OPEN_KITCHEN_FT = roomDefaults.openKitchenWidthFt;
 const PASSAGE_PROBABILITY = 0.2;
+const PASSAGE_ALLOWANCE_FT = 10;
+const MIN_OPEN_FT = 3;
+/** The rooms, at their defaults, are sized to this share of the envelope before the rest is left open. */
+const ROOM_FILL_TARGET = 1.0;
 const MIN_SLICE_FT = 3;
 const MIN_DISTINCT = 0.35;
 /** Share of boundary rooms that get a staggered edge, and the niche depths (ft) it can leave. */
@@ -46,6 +50,8 @@ export interface Item {
 export interface Leaf {
   rect: Rect;
   spec?: RoomSpec;
+  /** Spare area beside a room that was kept to its size cap. Not a room. */
+  open?: boolean;
 }
 
 /** Input defaults so callers can pass only what they changed. */
@@ -84,6 +90,9 @@ export function generatePlans(rawInput: PlotInput, opts: GenerateOptions = {}): 
   }
 
   const penalty = vastuPenalty(frame, input);
+  // Open space is reserved first, as a strip at the back, so the rooms can keep to their size caps.
+  const reserved = reserveOpenStrip(frame.interior, program.rooms, input.openSpacePct ?? 0);
+  const packed = { rest: frame.interior as Rect, strip: undefined as Rect | undefined };
   // Zone-first starts are optional (strict Vastu only): a small gain, measured over three seeds.
   const zoned = input.vastu === 'strict' && input.zoneFirst === true;
   const rand = mulberry32(seed);
@@ -91,8 +100,9 @@ export function generatePlans(rawInput: PlotInput, opts: GenerateOptions = {}): 
   let sampled = 0;
 
   // Each restart is a short hill-climb over the room order. Cost = size penalty + hard violations.
-  const evaluateOrder = (order: Item[], structSeed: number, chainSeed: number) => {
-    const { leaves, pen } = optimise(buildTree(order, mulberry32(structSeed)), frame.interior, mulberry32(chainSeed), penalty);
+  const evaluateOrder = (order: Item[], structSeed: number, chainSeed: number, split: { rest: Rect; strip?: Rect }) => {
+    const { leaves, pen } = optimise(buildTree(order, mulberry32(structSeed)), split.rest, mulberry32(chainSeed), penalty, OPTIMISE_STEPS, frame.interior);
+    if (split.strip) leaves.push({ rect: split.strip, open: true });
     if (pen > 0) return { cost: INFEASIBLE_COST + pen, cand: null as Candidate | null, ev: null as Evaluation | null };
     const cand = toCandidate(leaves, frame);
     const ev = evaluate(cand, frame, input, program.rooms);
@@ -106,13 +116,15 @@ export function generatePlans(rawInput: PlotInput, opts: GenerateOptions = {}): 
     const structSeed = Math.floor(restartRand() * 2 ** 31);
     const chainSeed = Math.floor(restartRand() * 2 ** 31);
     let order = zoned && restartRand() < 0.5 ? orderItemsZoned(items, frame, restartRand) : orderItems(items, restartRand);
-    let cur = evaluateOrder(order, structSeed, chainSeed);
+    // Half the restarts reserve the open strip; the others pack the rooms into the whole envelope.
+    const split = reserved.strip && restartRand() < 0.75 ? reserved : packed;
+    let cur = evaluateOrder(order, structSeed, chainSeed, split);
     for (let step = 0; step < CHAIN_STEPS && cur.cost > 0; step++) {
       const next = order.slice();
       const i = Math.floor(restartRand() * next.length);
       const j = Math.floor(restartRand() * next.length);
       [next[i], next[j]] = [next[j], next[i]];
-      const trial = evaluateOrder(next, structSeed, chainSeed + step + 1);
+      const trial = evaluateOrder(next, structSeed, chainSeed + step + 1, split);
       if (trial.cost <= cur.cost) {
         order = next;
         cur = trial;
@@ -238,8 +250,14 @@ export function realize(
   envelope?: Rect,
 ): number {
   if (isLeaf(node)) {
-    const placed = node.stagger && envelope ? applyStagger(rect, node.stagger, envelope) : rect;
+    const staggered = node.stagger && envelope ? applyStagger(rect, node.stagger, envelope) : rect;
+    // Toilets never grow more than 1 ft beyond their default in either side.
+    // Client rule: each side of a room may be at most 15% over its default (toilets: 1 ft over).
+    const cap = capOf(node.spec);
+    const placed = clampKeepingCorner(staggered, cap.w, cap.h);
     out.push({ rect: placed, spec: node.spec });
+    // The spare area is left open rather than stretching the room or cutting it off from its neighbours.
+    for (const spare of spareAround(staggered, placed)) out.push({ rect: spare, open: true });
     return penaltyOf(node.spec, placed);
   }
   const alongX = node.axis ? node.axis === 'x' : rect.w >= rect.h ? node.longBias : !node.longBias;
@@ -301,7 +319,8 @@ export function applyStagger(rect: Rect, stagger: Stagger, env: Rect): Rect {
  * shift that leaves more furniture placed. Only runs on layouts that will be shown.
  */
 function fitDoors(build: (shifts: Map<string, number>) => Layout, childIds: string[]): Layout {
-  let shifts = new Map<string, number>();
+  // Doors start at a corner of their shared wall; a centred door is used only if it leaves more furniture placed.
+  let shifts = new Map<string, number>(childIds.map((id) => [id, -1]));
   let best = build(shifts);
   for (let pass = 0; pass < 2; pass++) {
     for (const id of childIds) {
@@ -396,19 +415,34 @@ const INFEASIBLE_COST = 1000;
  * Hill-climbs the strip shares of one structure until every room meets its size limits.
  * Returns the layout leaves and the remaining penalty (0 = feasible).
  */
+/** Cost per square foot of open space left between rooms, so the search prefers it on the envelope edge. */
+const INTERIOR_SPARE_COST = 0.05;
+
+/** Hard penalty of a layout, plus the cost of open space stranded between rooms. */
+function layoutCost(tree: TreeNode, rect: Rect, penaltyOf: LeafPenalty, envelope: Rect): { pen: number; cost: number } {
+  const out: Leaf[] = [];
+  const pen = realize(tree, rect, out, penaltyOf, envelope);
+  let spare = 0;
+  for (const l of out) {
+    if (l.open && !touchesEnvelope(l.rect, envelope)) spare += l.rect.w * l.rect.h;
+  }
+  return { pen, cost: pen + spare * INTERIOR_SPARE_COST };
+}
+
 export function optimise(
   tree: TreeNode,
   rect: Rect,
   rand: () => number,
   penaltyOf: LeafPenalty = leafPenalty,
   steps = OPTIMISE_STEPS,
+  envelope: Rect = rect,
 ): { leaves: Leaf[]; pen: number } {
   const splits = collectSplits(tree);
-  let pen = realize(tree, rect, [], penaltyOf, rect);
-  let bestPen = pen;
+  let state = layoutCost(tree, rect, penaltyOf, envelope);
+  let bestCost = state.cost;
   const best = splits.map((n) => n.ratios.slice());
   // Simulated annealing on the strip shares: occasionally accept a worse state to escape plateaus.
-  for (let step = 0; step < steps && bestPen > 0 && splits.length > 0; step++) {
+  for (let step = 0; step < steps && bestCost > 0 && splits.length > 0; step++) {
     const temperature = 3 * (1 - step / steps) + 0.05;
     const node = splits[Math.floor(rand() * splits.length)];
     if (node.ratios.length === 0) continue;
@@ -420,11 +454,11 @@ export function optimise(
       node.ratios[i] = old;
       continue;
     }
-    const p2 = realize(tree, rect, [], penaltyOf, rect);
-    if (p2 <= pen || rand() < Math.exp(-(p2 - pen) / temperature)) {
-      pen = p2;
-      if (pen < bestPen) {
-        bestPen = pen;
+    const next = layoutCost(tree, rect, penaltyOf, envelope);
+    if (next.cost <= state.cost || rand() < Math.exp(-(next.cost - state.cost) / temperature)) {
+      state = next;
+      if (state.cost < bestCost) {
+        bestCost = state.cost;
         splits.forEach((n, k) => (best[k] = n.ratios.slice()));
       }
     } else {
@@ -433,8 +467,17 @@ export function optimise(
   }
   splits.forEach((n, k) => (n.ratios = best[k]));
   const leaves: Leaf[] = [];
-  pen = realize(tree, rect, leaves, penaltyOf, rect);
+  const pen = realize(tree, rect, leaves, penaltyOf, envelope);
   return { leaves, pen };
+}
+
+/** True when the rectangle lies on one of the envelope's four edges. */
+function touchesEnvelope(r: Rect, env: Rect): boolean {
+  const eps = 1e-6;
+  return (
+    Math.abs(r.x - env.x) < eps || Math.abs(r.y - env.y) < eps ||
+    Math.abs(r.x + r.w - (env.x + env.w)) < eps || Math.abs(r.y + r.h - (env.y + env.h)) < eps
+  );
 }
 
 /**
@@ -520,7 +563,8 @@ export function orderItems(items: Item[], rand: () => number): Item[] {
 
 export function toCandidate(leaves: Leaf[], frame: Frame): Candidate {
   let passageNo = 0;
-  const rooms: PlacedRoom[] = leaves.map((leaf) => {
+  const openSpaces = leaves.filter((leaf) => leaf.open).map((leaf) => leaf.rect);
+  const rooms: PlacedRoom[] = leaves.filter((leaf) => !leaf.open).map((leaf) => {
     const rect = leaf.rect;
     const cx = rect.x + rect.w / 2;
     const cy = rect.y + rect.h / 2;
@@ -535,7 +579,7 @@ export function toCandidate(leaves: Leaf[], frame: Frame): Candidate {
       compass: compassOfPoint(cx, cy, frame),
     };
   });
-  return { rooms };
+  return { rooms, openSpaces };
 }
 
 /** Fraction of rooms whose rectangle moved by more than half a foot. */
@@ -656,6 +700,7 @@ function assembleLayout(
     seed,
     frame,
     rooms,
+    openSpaces: cand.openSpaces ?? [],
     openings,
     parking,
     furniture: furniture.items,
@@ -731,4 +776,44 @@ export function layoutSignature(l: Layout): string {
 
 function unique<T>(xs: T[]): T[] {
   return [...new Set(xs)];
+}
+
+/** Largest a room may be: its default plus 15% per side (toilets: 1 ft per side). */
+function capOf(r: RoomSpec): { w: number; h: number } {
+  const toilet = r.kind === 'attachedToilet' || r.kind === 'commonToilet';
+  return toilet ? { w: r.defW + 1, h: r.defH + 1 } : { w: r.defW * 1.15, h: r.defH * 1.15 };
+}
+
+/**
+ * Splits off a strip at the back of the envelope for open space when the rooms, at their caps,
+ * cannot fill it. The rest of the envelope is what the rooms are laid out in.
+ */
+export function reserveOpenStrip(interior: Rect, rooms: RoomSpec[], openSpacePct: number): { rest: Rect; strip?: Rect } {
+  const area = interior.w * interior.h;
+  const roomsDefault = rooms.reduce((sum, r) => (r.kind === 'passage' ? sum : sum + r.defW * r.defH), 0);
+  const want = roomsDefault * ROOM_FILL_TARGET + PASSAGE_FT * PASSAGE_ALLOWANCE_FT;
+  // The strip is at least the requested open space, and at most leaves room for the tallest room.
+  const spare = Math.max(area - want, (area * openSpacePct) / 100);
+  const tallest = Math.max(0, ...rooms.map((r) => r.defH));
+  const depth = Math.min(interior.h - tallest, Math.floor((spare / interior.w) * 2) / 2);
+  if (depth < MIN_OPEN_FT) return { rest: interior };
+  return {
+    rest: { x: interior.x, y: interior.y, w: interior.w, h: interior.h - depth },
+    strip: { x: interior.x, y: interior.y + interior.h - depth, w: interior.w, h: depth },
+  };
+}
+
+/** The strips of `outer` not covered by `inner`, which shares its top-left corner. */
+function spareAround(outer: Rect, inner: Rect): Rect[] {
+  const spare: Rect[] = [];
+  if (outer.w - inner.w > 0.5) spare.push({ x: inner.x + inner.w, y: outer.y, w: outer.w - inner.w, h: outer.h });
+  if (outer.h - inner.h > 0.5) spare.push({ x: outer.x, y: inner.y + inner.h, w: inner.w, h: outer.h - inner.h });
+  return spare;
+}
+
+/** Shrinks a rectangle to at most w x h, keeping its corner. */
+function clampKeepingCorner(r: Rect, w: number, h: number): Rect {
+  const longCap = Math.max(w, h), shortCap = Math.min(w, h);
+  const wide = r.w >= r.h;
+  return { x: r.x, y: r.y, w: Math.min(r.w, wide ? longCap : shortCap), h: Math.min(r.h, wide ? shortCap : longCap) };
 }
