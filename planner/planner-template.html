@@ -146,7 +146,8 @@ td input { width: 64px; padding: 6px 8px; }
   <section class="card" id="generate-card" hidden aria-labelledby="gen-h">
     <h2 id="gen-h">Generate plans</h2>
     <p class="hint">Uses the plot, programme, setbacks and room sizes above.</p>
-    <div class="row" style="margin-top:10px"><button class="primary" id="go">Generate plans</button></div>
+    <div class="row" style="margin-top:10px"><button class="primary" id="go">Generate plans</button><button id="more" disabled>More plans</button></div>
+    <p class="hint">More plans keeps the plans already shown and adds new ones. After changing the plot or rooms, press Generate plans to start a new list.</p>
   </section>
 
   <section aria-live="polite" class="card" id="result-card" hidden>
@@ -454,45 +455,85 @@ td input { width: 64px; padding: 6px 8px; }
     sizesFeasibility();
   }
 
-  function render(res) {
+  // Plans accumulate across "More plans" searches. Each search uses a new seed; duplicates are dropped.
+  var BASE_SEED = 20260101;
+  var searchCount = 0;
+  var found = [];
+  var foundKeys = {};
+
+  function planCard(l) {
+    var card = document.createElement('article');
+    card.className = 'card plan';
+    addText(card, 'h2', 'Plan ' + l.id);
+    var sc = l.scorecard;
+    var stats = document.createElement('div');
+    stats.className = 'stats';
+    var plotArea = l.frame.width * l.frame.depth;
+    stats.innerHTML = 'Plot <b>' + Math.round(plotArea) + ' sq ft</b> · Built-up <b>' + Math.round(sc.builtUpArea) +
+      ' sq ft</b> · Carpet <b>' + Math.round(sc.carpetArea) + ' sq ft</b> · Score <b>' + Math.round(sc.total) + '</b>';
+    card.appendChild(stats);
+    var wrap = document.createElement('div');
+    wrap.className = 'zoomable';
+    wrap.tabIndex = 0;
+    wrap.setAttribute('role', 'button');
+    wrap.setAttribute('aria-label', 'Enlarge plan ' + l.id);
+    var svgMarkup = GP.sceneToSvg(GP.planScene(l, { unit: 'ftin' }));
+    wrap.innerHTML = svgMarkup;
+    var open = function () { openLightbox('Plan ' + l.id, svgMarkup); };
+    wrap.addEventListener('click', open);
+    wrap.addEventListener('keydown', function (e) { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); open(); } });
+    card.appendChild(wrap);
+    (l.warnings || []).slice(0, 4).forEach(function (w) { addText(card, 'div', w, 'hint'); });
+    return card;
+  }
+
+  function showPlans(errors, warnings) {
     var status = $('status'), messages = $('messages'), plans = $('plans');
     $('result-card').hidden = false;
     messages.textContent = '';
     plans.textContent = '';
     status.className = '';
-    if (res.errors.length) {
+    if (!found.length && errors.length) {
       status.className = 'err';
       status.textContent = 'No plans to show.';
-      res.errors.forEach(function (e) { addText(messages, 'div', e, 'err'); });
+      errors.forEach(function (e) { addText(messages, 'div', e, 'err'); });
     } else {
-      status.textContent = res.layouts.length + ' plan' + (res.layouts.length === 1 ? '' : 's') + ' generated.';
+      status.textContent = found.length + ' plan' + (found.length === 1 ? '' : 's') + ' so far.';
     }
-    res.warnings.forEach(function (w) { addText(messages, 'div', w, 'warn'); });
-    res.layouts.forEach(function (l) {
-      var card = document.createElement('article');
-      card.className = 'card plan';
-      addText(card, 'h2', 'Plan ' + l.id);
-      var sc = l.scorecard;
-      var stats = document.createElement('div');
-      stats.className = 'stats';
-      var plotArea = l.frame.width * l.frame.depth;
-      stats.innerHTML = 'Plot <b>' + Math.round(plotArea) + ' sq ft</b> · Built-up <b>' + Math.round(sc.builtUpArea) +
-        ' sq ft</b> · Carpet <b>' + Math.round(sc.carpetArea) + ' sq ft</b> · Score <b>' + Math.round(sc.total) + '</b>';
-      card.appendChild(stats);
-      var wrap = document.createElement('div');
-      wrap.className = 'zoomable';
-      wrap.tabIndex = 0;
-      wrap.setAttribute('role', 'button');
-      wrap.setAttribute('aria-label', 'Enlarge plan ' + l.id);
-      var svgMarkup = GP.sceneToSvg(GP.planScene(l, { unit: 'ftin' }));
-      wrap.innerHTML = svgMarkup;
-      var open = function () { openLightbox('Plan ' + l.id, svgMarkup); };
-      wrap.addEventListener('click', open);
-      wrap.addEventListener('keydown', function (e) { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); open(); } });
-      card.appendChild(wrap);
-      (l.warnings || []).slice(0, 4).forEach(function (w) { addText(card, 'div', w, 'hint'); });
-      plans.appendChild(card);
-    });
+    warnings.forEach(function (w) { addText(messages, 'div', w, 'warn'); });
+    found.forEach(function (l) { plans.appendChild(planCard(l)); });
+  }
+
+  // Generate starts a new list; More plans adds to the current one.
+  function search(more) {
+    var status = $('status');
+    $('result-card').hidden = false;
+    if (!more) { found = []; foundKeys = {}; searchCount = 0; }
+    status.className = '';
+    status.textContent = 'Searching. This can take up to a minute.';
+    setTimeout(function () {
+      try {
+        searchCount++;
+        var res = GP.generatePlans(readInput(), { count: 3, restarts: 1200, seed: BASE_SEED + searchCount * 7919 });
+        var added = 0;
+        res.layouts.forEach(function (l) {
+          var key = GP.layoutSignature(l);
+          if (foundKeys[key]) return;
+          foundKeys[key] = true;
+          found.push(Object.assign({}, l, { id: 'L' + (found.length + 1) }));
+          added++;
+        });
+        showPlans(res.errors, res.warnings);
+        if (more) {
+          status.textContent = (added ? added + ' new plan' + (added === 1 ? '' : 's') + ' added. ' : 'No new plans in this search. ') +
+            found.length + ' in total.';
+        }
+        $('more').disabled = false;
+      } catch (e) {
+        status.className = 'err';
+        status.textContent = 'Something went wrong: ' + (e && e.message ? e.message : e);
+      }
+    }, 50);
   }
 
   var lightbox = $('lightbox');
@@ -513,23 +554,6 @@ td input { width: 64px; padding: 6px 8px; }
   lightbox.addEventListener('click', function (e) { if (e.target === lightbox) closeLightbox(); });
   document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && !lightbox.hidden) closeLightbox(); });
 
-  function generate() {
-    var status = $('status');
-    $('result-card').hidden = false;
-    status.className = '';
-    status.textContent = 'Generating plans. This can take up to a minute.';
-    $('messages').textContent = '';
-    $('plans').textContent = '';
-    setTimeout(function () {
-      try {
-        render(GP.generatePlans(readInput(), { count: 3, restarts: 1200 }));
-      } catch (e) {
-        status.className = 'err';
-        status.textContent = 'Something went wrong: ' + (e && e.message ? e.message : e);
-      }
-    }, 50);
-  }
-
   function fillAndCheck() { showSetbackHints(); autoFill(); spaceCheck(); }
 
   // Room sizes appear once the plot and programme have been analysed.
@@ -549,7 +573,7 @@ td input { width: 64px; padding: 6px 8px; }
     var b = document.createElement('button');
     b.type = 'button';
     b.textContent = p.name.replace(/^\d+\.\s*/, '');
-    b.addEventListener('click', function () { setFromInputs(p.input); analyse(); generate(); });
+    b.addEventListener('click', function () { setFromInputs(p.input); analyse(); search(false); });
     chips.appendChild(b);
   });
 
@@ -568,7 +592,8 @@ td input { width: 64px; padding: 6px 8px; }
   });
   $('fill').addEventListener('click', fillAndCheck);
   $('analyse').addEventListener('click', analyse);
-  $('go').addEventListener('click', function () { if (!analysed) analyse(); generate(); });
+  $('go').addEventListener('click', function () { if (!analysed) analyse(); search(false); });
+  $('more').addEventListener('click', function () { search(true); });
   showSetbackHints();
   spaceCheck();
 
