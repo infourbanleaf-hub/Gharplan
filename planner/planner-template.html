@@ -235,7 +235,8 @@ td input { width: 64px; padding: 6px 8px; }
       bhk: bhk, vastu: $('vastu').value,
       floors: Number($('floors').value) === 2 ? 2 : 1, staircase: $('stair').value,
       parking: { cars: Number($('cars').value), twoWheelers: Number($('wheelers').value) },
-      attachedToilets: defaults.attachedToilets.map(function (v, i) { return i < bhk; })
+      // One attached toilet, for the master bedroom, matching the Room sizes table.
+      attachedToilets: defaults.attachedToilets.slice()
     });
   }
 
