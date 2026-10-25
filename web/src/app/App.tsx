@@ -218,7 +218,13 @@ export function App() {
     inputs.current.set(editing.draft, editing.input);
     setPlans((prev) => prev.map((p) => (p.id === editing.draft.id ? editing.draft : p)));
     setEditing(null);
-    setStatus({ tone: "", text: `Plan ${editing.draft.id} saved with your changes.` });
+    const issues = checkLayout(editing.draft, editing.input).violations.length;
+    setStatus({
+      tone: issues ? "err" : "",
+      text: issues
+        ? `Plan ${editing.draft.id} saved with ${issues} rule violation${issues === 1 ? "" : "s"}.`
+        : `Plan ${editing.draft.id} saved with your changes.`,
+    });
   };
 
   const exportSvg = (l: Layout) => downloadFile(`plan-${l.id}.svg`, layoutToSvg(l, units), "image/svg+xml");
@@ -465,7 +471,16 @@ export function App() {
 
       <section className="plans" aria-label="Generated plans">
         {plans.map((l) => (
-          <PlanCard key={layoutSignature(l) + l.id} layout={l} unit={units} onEnlarge={setZoom} onEdit={startEdit} onExportSvg={exportSvg} onExportDxf={exportDxf} />
+          <PlanCard
+            key={layoutSignature(l) + l.id}
+            layout={l}
+            unit={units}
+            issueCount={checkLayout(l, inputs.current.get(l) ?? normaliseInput(buildEngineInput(form, rows))).violations.length}
+            onEnlarge={setZoom}
+            onEdit={startEdit}
+            onExportSvg={exportSvg}
+            onExportDxf={exportDxf}
+          />
         ))}
       </section>
 

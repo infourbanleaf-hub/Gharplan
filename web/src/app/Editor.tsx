@@ -266,7 +266,7 @@ export function Editor({
             </button>
           </div>
           <div className="row">
-            <button type="button" className="primary" onClick={onSave} disabled={!changed || check.violations.length > 0}>
+            <button type="button" className="primary" onClick={onSave} disabled={!changed}>
               Save changes
             </button>
             <button type="button" onClick={onDiscard}>
@@ -274,7 +274,9 @@ export function Editor({
             </button>
           </div>
           {changed && check.violations.length > 0 && (
-            <p className="hint">Fix the rule violations before saving.</p>
+            <p className="hint">
+              Saving keeps {check.violations.length} rule violation{check.violations.length === 1 ? "" : "s"} on this plan.
+            </p>
           )}
         </aside>
       </div>

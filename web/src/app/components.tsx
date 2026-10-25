@@ -113,17 +113,24 @@ interface PlanCardProps {
   unit: Unit;
   onEnlarge: (layout: Layout) => void;
   onEdit: (layout: Layout) => void;
+  /** Rule violations on the plan as it stands. Non-zero after saving an edit that breaks a rule. */
+  issueCount: number;
   onExportSvg: (layout: Layout) => void;
   onExportDxf: (layout: Layout) => void;
 }
 
-export function PlanCard({ layout, unit, onEnlarge, onEdit, onExportSvg, onExportDxf }: PlanCardProps) {
+export function PlanCard({ layout, unit, onEnlarge, onEdit, issueCount, onExportSvg, onExportDxf }: PlanCardProps) {
   const sc = layout.scorecard;
   const plotArea = layout.frame.width * layout.frame.depth;
   const svg = layoutToSvg(layout, unit);
   return (
     <article className="card plan">
       <h2>Plan {layout.id}</h2>
+      {issueCount > 0 && (
+        <div className="err">
+          {issueCount} rule violation{issueCount === 1 ? "" : "s"} — see Edit for details.
+        </div>
+      )}
       <div className="stats">
         Plot <b>{Math.round(plotArea)} sq ft</b> · Built-up <b>{Math.round(sc.builtUpArea)} sq ft</b> · Carpet{" "}
         <b>{Math.round(sc.carpetArea)} sq ft</b> · Score <b>{Math.round(sc.total)}</b>
