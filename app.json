@@ -1,0 +1,24 @@
+{
+  "expo": {
+    "name": "GharPlan",
+    "slug": "gharplan",
+    "version": "0.1.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "light",
+    "platforms": [
+      "android",
+      "web"
+    ],
+    "android": {
+      "package": "in.gharplan.trial"
+    },
+    "web": {
+      "bundler": "metro",
+      "output": "single"
+    },
+    "plugins": [
+      "expo-asset",
+      "expo-font"
+    ]
+  }
+}
