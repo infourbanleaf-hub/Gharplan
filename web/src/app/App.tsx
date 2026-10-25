@@ -2,7 +2,10 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { createPlanClient, type PlanClient } from "../engine/client";
 import { layoutSignature } from "../engine/assemble";
 import { ACCEPTANCE_CASES } from "../engine/presets";
-import type { Compass, Layout, PlanInput, RoomKind, Unit } from "../engine/types";
+import type { CandidateRoom, Compass, Layout, NormalisedInput, PlanInput, RoomKind, Unit } from "../engine/types";
+import { checkLayout, reassemble } from "../engine/edit";
+import { normaliseInput } from "../engine/generate";
+import { Editor, type EditCheck } from "./Editor";
 import { downloadFile, layoutToDxf, layoutToSvg } from "../export";
 import {
   DEFAULT_FORM,
@@ -28,6 +31,16 @@ interface Message {
   text: string;
 }
 
+/** An open editing session. `draft` is the plan being changed; `original` is the generated plan. */
+interface Editing {
+  original: Layout;
+  draft: Layout;
+  check: EditCheck;
+  history: Layout[];
+  input: NormalisedInput;
+  selectedId: string | null;
+}
+
 export function App() {
   const [form, setForm] = useState<PlotForm>(DEFAULT_FORM);
   const [analysed, setAnalysed] = useState(false);
@@ -41,6 +54,9 @@ export function App() {
   const [feedback, setFeedback] = useState("");
   const [copied, setCopied] = useState("");
   const [zoom, setZoom] = useState<Layout | null>(null);
+  const [editing, setEditing] = useState<Editing | null>(null);
+  // The rule input each plan was generated from, so the editor can re-check it.
+  const inputs = useRef(new WeakMap<Layout, NormalisedInput>());
 
   // The worker is created on first use and terminated on unmount.
   const clientRef = useRef<PlanClient | null>(null);
@@ -84,6 +100,7 @@ export function App() {
   };
 
   const runSearch = async (f: PlotForm, r: Rows, more: boolean) => {
+    setEditing(null);
     const current = more ? plans : [];
     const keys = new Set(current.map(layoutSignature));
     const count = more ? searchCount.current + 1 : 1;
@@ -105,6 +122,8 @@ export function App() {
         added.push(l);
       }
       const next = [...current, ...added].map((l, i) => ({ ...l, id: `L${i + 1}` }));
+      const normal = normaliseInput(buildEngineInput(f, r));
+      for (const l of next) inputs.current.set(l, normal);
       setPlans(next);
       setMessages([
         ...res.errors.map((text) => ({ tone: "err" as const, text })),
@@ -160,6 +179,46 @@ export function App() {
 
   const sizeRoom = (key: RoomKind, field: "defW" | "defH", value: number | null) => {
     setRows((prev) => ({ ...prev, [key]: { ...prev[key], [field]: value } }));
+  };
+
+  const startEdit = (l: Layout) => {
+    const input = inputs.current.get(l) ?? normaliseInput(buildEngineInput(form, rows));
+    setEditing({ original: l, draft: l, check: checkLayout(l, input), history: [], input, selectedId: null });
+  };
+
+  const editRooms = (rooms: CandidateRoom[]) => {
+    if (!editing) return;
+    const res = reassemble(editing.draft, rooms, editing.input);
+    setEditing({
+      ...editing,
+      history: [...editing.history, editing.draft],
+      draft: res.layout,
+      check: { violations: res.violations, vastuFlags: res.vastuFlags, total: res.total },
+    });
+  };
+
+  const undoEdit = () => {
+    if (!editing || editing.history.length === 0) return;
+    const prev = editing.history[editing.history.length - 1];
+    setEditing({
+      ...editing,
+      history: editing.history.slice(0, -1),
+      draft: prev,
+      check: checkLayout(prev, editing.input),
+    });
+  };
+
+  const resetEdit = () => {
+    if (!editing) return;
+    setEditing({ ...editing, draft: editing.original, history: [], check: checkLayout(editing.original, editing.input) });
+  };
+
+  const saveEdit = () => {
+    if (!editing) return;
+    inputs.current.set(editing.draft, editing.input);
+    setPlans((prev) => prev.map((p) => (p.id === editing.draft.id ? editing.draft : p)));
+    setEditing(null);
+    setStatus({ tone: "", text: `Plan ${editing.draft.id} saved with your changes.` });
   };
 
   const exportSvg = (l: Layout) => downloadFile(`plan-${l.id}.svg`, layoutToSvg(l, units), "image/svg+xml");
@@ -387,9 +446,26 @@ export function App() {
         </section>
       )}
 
+      {editing && (
+        <Editor
+          layout={editing.draft}
+          unit={units}
+          check={editing.check}
+          selectedId={editing.selectedId}
+          canUndo={editing.history.length > 0}
+          changed={editing.draft !== editing.original}
+          onSelect={(id) => setEditing((e) => (e ? { ...e, selectedId: id } : e))}
+          onRooms={editRooms}
+          onUndo={undoEdit}
+          onReset={resetEdit}
+          onSave={saveEdit}
+          onDiscard={() => setEditing(null)}
+        />
+      )}
+
       <section className="plans" aria-label="Generated plans">
         {plans.map((l) => (
-          <PlanCard key={layoutSignature(l) + l.id} layout={l} unit={units} onEnlarge={setZoom} onExportSvg={exportSvg} onExportDxf={exportDxf} />
+          <PlanCard key={layoutSignature(l) + l.id} layout={l} unit={units} onEnlarge={setZoom} onEdit={startEdit} onExportSvg={exportSvg} onExportDxf={exportDxf} />
         ))}
       </section>
 

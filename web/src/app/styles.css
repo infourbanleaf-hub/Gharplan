@@ -91,3 +91,16 @@ tr.must td:nth-child(2)::after { content: " · must have"; font-weight: 400; fon
 @media (max-width: 560px) {
   .plans { grid-template-columns: 1fr; }
 }
+
+.editor-grid { display: grid; gap: 16px; grid-template-columns: minmax(0, 1fr) 260px; align-items: start; }
+.editor-side { display: grid; gap: 12px; align-content: start; }
+.checks { display: grid; gap: 6px; font-size: 14px; }
+.checks ul { margin: 0; padding-left: 18px; }
+.ok { color: var(--accent); }
+.err-list { color: var(--err); }
+.warn-list { color: var(--warn); }
+.room-fields { display: grid; gap: 8px; border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; margin: 0; }
+.room-fields legend { font-weight: 600; padding: 0 4px; }
+@media (max-width: 760px) {
+  .editor-grid { grid-template-columns: 1fr; }
+}

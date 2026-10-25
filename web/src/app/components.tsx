@@ -112,11 +112,12 @@ interface PlanCardProps {
   layout: Layout;
   unit: Unit;
   onEnlarge: (layout: Layout) => void;
+  onEdit: (layout: Layout) => void;
   onExportSvg: (layout: Layout) => void;
   onExportDxf: (layout: Layout) => void;
 }
 
-export function PlanCard({ layout, unit, onEnlarge, onExportSvg, onExportDxf }: PlanCardProps) {
+export function PlanCard({ layout, unit, onEnlarge, onEdit, onExportSvg, onExportDxf }: PlanCardProps) {
   const sc = layout.scorecard;
   const plotArea = layout.frame.width * layout.frame.depth;
   const svg = layoutToSvg(layout, unit);
@@ -147,6 +148,9 @@ export function PlanCard({ layout, unit, onEnlarge, onExportSvg, onExportDxf }: 
         </div>
       ))}
       <div className="row">
+        <button type="button" onClick={() => onEdit(layout)}>
+          Edit
+        </button>
         <button type="button" onClick={() => onExportSvg(layout)}>
           Download SVG
         </button>

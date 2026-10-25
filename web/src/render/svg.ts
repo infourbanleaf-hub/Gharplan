@@ -22,10 +22,14 @@ function itemToSvg(it: SceneItem): string {
   }
 }
 
+/** The drawing elements of a scene, without the enclosing svg element. */
+export function sceneBody(scene: Scene): string {
+  return scene.items.map(itemToSvg).join("\n");
+}
+
 export function sceneToSvg(scene: Scene): string {
-  const body = scene.items.map(itemToSvg).join("\n");
   return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${scene.width.toFixed(2)} ${scene.height.toFixed(2)}" width="100%" style="background:#ffffff">
-${body}
+${sceneBody(scene)}
 </svg>
 `;
 }

@@ -83,7 +83,11 @@ export const ROOM_FILL: Partial<Record<RoomKind, string>> = {
 };
 
 /** Maps plan coordinates (feet, origin at front-left) to SVG pixels, with a margin on every side. */
-function makeMapper(frame: Frame, scale: number, margin: number) {
+/**
+ * Maps plan coordinates (feet, origin at front-left) to scene pixels, with a margin on every side.
+ * `toPlan` is the inverse, used to turn pointer positions back into plan feet.
+ */
+export function planMapper(frame: Frame, scale = DEFAULT_PLAN_OPTIONS.scale, margin = 7) {
   const corners = [
     { x: 0, y: 0 },
     { x: frame.width, y: 0 },
@@ -96,11 +100,20 @@ function makeMapper(frame: Frame, scale: number, margin: number) {
     const w = localToWorld(p.x, p.y, frame);
     return { x: (w.x - minX + margin) * scale, y: (maxY - w.y + margin) * scale };
   };
+  // The frame's right and inward vectors are orthonormal, so the inverse is the transpose.
+  const toPlan = (px: Point): Point => {
+    const wx = px.x / scale + minX - margin;
+    const wy = maxY + margin - px.y / scale;
+    return {
+      x: wx * frame.right[0] + wy * frame.right[1] + frame.width / 2,
+      y: wx * frame.inward[0] + wy * frame.inward[1] + frame.depth / 2,
+    };
+  };
   const extent = {
     width: (Math.max(...corners.map((c) => c.x)) - minX + 2 * margin) * scale,
     height: (maxY - Math.min(...corners.map((c) => c.y)) + 2 * margin) * scale,
   };
-  return { local, extent };
+  return { local, toPlan, extent };
 }
 
 /** Splits a long label into two lines at the middle word. */
@@ -116,7 +129,7 @@ export function planScene(layout: Layout, opts: Partial<PlanOptions> = {}): Scen
   const o: PlanOptions = { ...DEFAULT_PLAN_OPTIONS, ...opts };
   const frame = layout.frame;
   const margin = 7;
-  const { local, extent } = makeMapper(frame, o.scale, margin);
+  const { local, extent } = planMapper(frame, o.scale, margin);
   const items: SceneItem[] = [];
   const poly = (pts: Rect | Point[], fill: string, layer: Layer, extra: Partial<SceneItem & { kind: "polygon" }> = {}) => {
     const list = Array.isArray(pts) ? pts : rectPoints(pts);
