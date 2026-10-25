@@ -1,0 +1,2627 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<title>GharPlan Planner</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<style>
+/* Layout: one column; inputs on top, plans below, feedback last. */
+:root {
+  --bg: #f6f5f1; --fg: #1d1f1c; --muted: #5d625b; --card: #ffffff; --line: #d9dcd3;
+  --accent: #1f6b4f; --accent-fg: #ffffff; --warn: #8a5a00; --err: #a3262b;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #14160f; --fg: #eceee6; --muted: #a4a99c; --card: #1d2019; --line: #3a3f35;
+    --accent: #7fc6a4; --accent-fg: #0f2a1e; --warn: #f0c060; --err: #ff8a8e;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #14160f; --fg: #eceee6; --muted: #a4a99c; --card: #1d2019; --line: #3a3f35;
+  --accent: #7fc6a4; --accent-fg: #0f2a1e; --warn: #f0c060; --err: #ff8a8e;
+  color-scheme: dark;
+}
+body { background: var(--bg); color: var(--fg); font: 15px/1.5 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-block: 20px 32px; }
+main { max-width: 980px; margin: 0 auto; display: grid; gap: 20px; }
+h1 { margin: 0; font-size: 26px; letter-spacing: -0.01em; text-wrap: balance; }
+h2 { margin: 0; font-size: 17px; }
+p { margin: 0; color: var(--muted); }
+.card { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 18px; min-width: 0; }
+.row { display: flex; flex-wrap: wrap; gap: 12px; align-items: end; }
+label { display: grid; gap: 4px; font-size: 13px; color: var(--muted); min-width: 0; }
+input, select, textarea { font: inherit; color: var(--fg); background: var(--bg); border: 1px solid var(--line);
+  border-radius: 8px; padding: 8px 10px; min-width: 0; }
+input[type="number"] { width: 96px; font-variant-numeric: tabular-nums; }
+textarea { width: 100%; min-height: 96px; box-sizing: border-box; }
+button { font: inherit; border-radius: 8px; padding: 9px 16px; border: 1px solid var(--line); background: var(--card); color: var(--fg); cursor: pointer; }
+button.primary { background: var(--accent); color: var(--accent-fg); border-color: var(--accent); font-weight: 600; }
+button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.chips { display: flex; flex-wrap: wrap; gap: 8px; }
+.chips button { font-size: 13px; padding: 6px 10px; }
+#status { font-size: 14px; }
+#status.err { color: var(--err); }
+#messages { display: grid; gap: 6px; font-size: 14px; }
+#messages .warn { color: var(--warn); }
+#messages .err { color: var(--err); }
+.plans { display: grid; gap: 16px; grid-template-columns: repeat(auto-fit, minmax(min(100%, 300px), 1fr)); }
+.plan { display: grid; gap: 10px; align-content: start; }
+.plan svg { width: 100%; height: auto; max-width: 100%; display: block; background: #fff; border-radius: 8px; }
+.stats { font-size: 13px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.stats b { color: var(--fg); font-weight: 600; }
+.feas { margin-top: 14px; display: grid; gap: 8px; font-size: 14px; }
+.feas > div { border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; }
+.feas .verdict.err { color: var(--err); }
+.feas .verdict.warn { color: var(--warn); }
+.feas .open-area { border: 2px dashed var(--accent); background: color-mix(in srgb, var(--accent) 12%, transparent); }
+.feas .open-area b { color: var(--accent); }
+.hint { font-size: 13px; color: var(--muted); }
+tr.must td:nth-child(2) { color: var(--accent); font-weight: 600; }
+tr.must td:nth-child(2)::after { content: " · must have"; font-weight: 400; font-size: 12px; color: var(--accent); }
+.zoomable { cursor: zoom-in; border-radius: 8px; }
+.zoomable:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
+.lightbox { position: fixed; inset: 0; background: rgba(10, 12, 9, 0.82); display: grid; place-items: center; z-index: 50;
+  padding: max(12px, env(safe-area-inset-top, 0px)) max(12px, env(safe-area-inset-right, 0px)) max(12px, env(safe-area-inset-bottom, 0px)) max(12px, env(safe-area-inset-left, 0px)); }
+.lightbox[hidden] { display: none; }
+.lightbox-panel { background: var(--card); color: var(--fg); border-radius: 12px; width: min(100%, 1100px); max-height: 100%;
+  overflow: auto; padding: 16px; display: grid; gap: 12px; box-sizing: border-box; }
+.lightbox-panel svg { width: 100%; height: auto; display: block; background: #fff; border-radius: 8px; }
+.lightbox-bar { display: flex; justify-content: space-between; align-items: center; gap: 12px; }
+.table-wrap { overflow-x: auto; }
+table { border-collapse: collapse; font-size: 12px; width: 100%; min-width: 360px; }
+th, td { text-align: left; padding: 3px 6px; border-bottom: 1px solid var(--line); vertical-align: middle; line-height: 1.2; }
+#sizes input[type="number"] { width: 64px; padding: 3px 6px; }
+#sizes input[type="checkbox"] { margin: 0; }
+th { color: var(--muted); font-weight: 600; }
+td input { width: 64px; padding: 6px 8px; }
+</style>
+
+<main>
+  <header>
+    <h1>GharPlan Planner</h1>
+    <p>Rule-based house layouts for Indian plots. Pick a sample or enter your own plot, then generate.</p>
+  </header>
+
+  <section class="card" aria-labelledby="inputs-h">
+    <h2 id="inputs-h">Plot and programme</h2>
+    <div class="chips" style="margin:12px 0" id="presets"></div>
+    <div class="row">
+      <label>Frontage (ft)<input id="width" type="number" min="10" max="200" step="0.5" value="30"></label>
+      <label>Depth (ft)<input id="depth" type="number" min="10" max="200" step="0.5" value="40"></label>
+      <label>Floors
+        <select id="floors"><option value="1" selected>1 (ground)</option><option value="2">2</option></select>
+      </label>
+      <label>Staircase
+        <select id="stair"><option value="internal" selected>Internal</option><option value="external">External</option></select>
+      </label>
+      <label>Setbacks
+        <select id="sb-mode"><option value="zero" selected>Zero (default)</option><option value="table">Bye-law table</option></select>
+      </label>
+      <label>Setback front (ft)<input id="sb-front" type="number" min="0" max="100" step="0.5" placeholder="0"></label>
+      <label>Setback rear (ft)<input id="sb-rear" type="number" min="0" max="100" step="0.5" placeholder="0"></label>
+      <label>Setback left (ft)<input id="sb-left" type="number" min="0" max="100" step="0.5" placeholder="0"></label>
+      <label>Setback right (ft)<input id="sb-right" type="number" min="0" max="100" step="0.5" placeholder="0"></label>
+      <label>Facing
+        <select id="facing"><option>N</option><option>NE</option><option>E</option><option>SE</option><option>S</option><option>SW</option><option>W</option><option>NW</option></select>
+      </label>
+      <label>Bedrooms
+        <select id="bhk"><option value="1">1 BHK</option><option value="2" selected>2 BHK</option><option value="3">3 BHK</option><option value="4">4 BHK</option></select>
+      </label>
+      <label>Vastu
+        <select id="vastu"><option value="none">None</option><option value="moderate" selected>Moderate</option><option value="strict">Strict</option></select>
+      </label>
+      <label>Cars
+        <select id="cars"><option value="0">0</option><option value="1">1</option></select>
+      </label>
+      <label>Two-wheelers
+        <select id="wheelers"><option value="0">0</option><option value="1">1</option><option value="2">2</option></select>
+      </label>
+      <button id="analyse">Analyse plot and programme</button>
+    </div>
+  </section>
+
+  <section class="card" aria-labelledby="space-h">
+    <h2 id="space-h">Space check</h2>
+    <div id="space" class="stats" style="font-size:14px;display:grid;gap:8px"></div>
+  </section>
+
+  <section class="card" aria-labelledby="sizes-h" id="sizes-card" hidden>
+    <h2 id="sizes-h">Room sizes (ft)</h2>
+    <p class="hint">Filled from the plot size and programme. Each room is at least its engine minimum (toilets 1 ft under their size) and at most +15% per side, and rooms may be rotated. Untick a room to leave it out of the plan.</p>
+    <div class="row" style="margin-top:10px"><button type="button" id="fill">Fill from plot size</button><span class="hint" id="fill-note"></span></div>
+    <div class="table-wrap" style="margin-top:10px"><table>
+      <thead><tr><th>In plan</th><th>Room</th><th>Width (ft)</th><th>Depth (ft)</th><th>Area (sq ft)</th></tr></thead>
+      <tbody id="sizes"></tbody>
+      <tfoot><tr><th colspan="4">Total</th><th id="sizes-total">–</th></tr></tfoot>
+    </table></div>
+    <div id="feasibility" class="feas" aria-live="polite"></div>
+  </section>
+
+  <div class="lightbox" id="lightbox" hidden role="dialog" aria-modal="true" aria-labelledby="lightbox-title">
+  <div class="lightbox-panel" id="lightbox-panel">
+    <div class="lightbox-bar"><h2 id="lightbox-title">Plan</h2><button type="button" id="lightbox-close">Close</button></div>
+    <div id="lightbox-body"></div>
+  </div>
+</div>
+
+  <section class="card" id="generate-card" hidden aria-labelledby="gen-h">
+    <h2 id="gen-h">Generate plans</h2>
+    <p class="hint">Uses the plot, programme, setbacks and room sizes above.</p>
+    <div class="row" style="margin-top:10px"><button class="primary" id="go">Generate plans</button><button id="more" disabled>More plans</button></div>
+    <p class="hint">More plans keeps the plans already shown and adds new ones. After changing the plot or rooms, press Generate plans to start a new list.</p>
+  </section>
+
+  <section aria-live="polite" class="card" id="result-card" hidden>
+    <div id="status"></div>
+    <div id="messages"></div>
+  </section>
+
+  <section class="plans" id="plans" aria-label="Generated plans"></section>
+
+  <section class="card" aria-labelledby="fb-h">
+    <h2 id="fb-h">Feedback</h2>
+    <p class="hint">Note what to change (room sizes, placement, a rule). Copy it and send it back.</p>
+    <div style="display:grid;gap:10px;margin-top:10px">
+      <textarea id="fb" placeholder="For example: kitchen should face the road; toilets too big."></textarea>
+      <div class="row"><button id="copy">Copy feedback</button><span class="hint" id="copied" aria-live="polite"></span></div>
+    </div>
+  </section>
+</main>
+
+<script>"use strict";
+var GP = (() => {
+  var __defProp = Object.defineProperty;
+  var __getOwnPropDesc = Object.getOwnPropertyDescriptor;
+  var __getOwnPropNames = Object.getOwnPropertyNames;
+  var __hasOwnProp = Object.prototype.hasOwnProperty;
+  var __export = (target, all) => {
+    for (var name in all)
+      __defProp(target, name, { get: all[name], enumerable: true });
+  };
+  var __copyProps = (to, from, except, desc) => {
+    if (from && typeof from === "object" || typeof from === "function") {
+      for (let key of __getOwnPropNames(from))
+        if (!__hasOwnProp.call(to, key) && key !== except)
+          __defProp(to, key, { get: () => from[key], enumerable: !(desc = __getOwnPropDesc(from, key)) || desc.enumerable });
+    }
+    return to;
+  };
+  var __toCommonJS = (mod) => __copyProps(__defProp({}, "__esModule", { value: true }), mod);
+
+  // entry-planner.ts
+  var entry_planner_exports = {};
+  __export(entry_planner_exports, {
+    ACCEPTANCE_CASES: () => ACCEPTANCE_CASES,
+    buildFrame: () => buildFrame,
+    buildProgram: () => buildProgram,
+    defaultInput: () => defaultInput,
+    generatePlans: () => generatePlans,
+    layoutSignature: () => layoutSignature,
+    planScene: () => planScene,
+    roomDefaults: () => room_defaults_default,
+    sceneToSvg: () => sceneToSvg
+  });
+
+  // config/room-defaults.json
+  var room_defaults_default = {
+    source: "Default and minimum sizes. Originally from the GharPlan brief (feet). Revised from the Groot Parys, Galway County Council and Kanpur reference plans; see RULES.md.",
+    rooms: {
+      living: {
+        label: "Living",
+        defW: 14,
+        defH: 16,
+        minW: 10,
+        minH: 12,
+        doorWidth: 3,
+        habitable: true,
+        bedroom: false,
+        source: "Groot Parys: living/dining 30-41 m2 (house 42-56)",
+        minSource: "previous floor (feasibility); default is the reference size"
+      },
+      dining: {
+        label: "Dining",
+        defW: 11,
+        defH: 12,
+        minW: 8,
+        minH: 10,
+        doorWidth: 3,
+        habitable: true,
+        bedroom: false,
+        source: "Groot Parys: dining 14-26 m2 combined with living (house 45, 53)",
+        minSource: "previous floor (feasibility); default is the reference size"
+      },
+      kitchen: {
+        label: "Kitchen",
+        defW: 8,
+        defH: 10,
+        minW: 7,
+        minH: 8,
+        doorWidth: 2.5,
+        habitable: true,
+        bedroom: false
+      },
+      master: {
+        label: "Master Bedroom",
+        defW: 13,
+        defH: 14,
+        minW: 11,
+        minH: 12,
+        doorWidth: 3,
+        habitable: true,
+        bedroom: true,
+        source: "Groot Parys: master 12-15 m2 (house 42-56)",
+        minSource: "previous floor (feasibility); default is the reference size"
+      },
+      bedroom: {
+        label: "Bedroom",
+        defW: 11.5,
+        defH: 12.5,
+        minW: 10,
+        minH: 10,
+        doorWidth: 3,
+        habitable: true,
+        bedroom: true,
+        source: "Groot Parys: bedroom 2/3 11-15 m2; Galway bedroom 2 13 m2 minimum",
+        minSource: "previous floor (feasibility); default is the reference size"
+      },
+      guest: {
+        label: "Guest Bedroom",
+        defW: 11.5,
+        defH: 12.5,
+        minW: 10,
+        minH: 10,
+        doorWidth: 3,
+        habitable: true,
+        bedroom: true,
+        source: "As bedroom",
+        minSource: "previous floor (feasibility); default is the reference size"
+      },
+      attachedToilet: {
+        label: "Attached Toilet",
+        defW: 7.5,
+        defH: 9,
+        minW: 4.5,
+        minH: 7,
+        doorWidth: 2.5,
+        habitable: false,
+        bedroom: false,
+        source: "Groot Parys: en-suite 6.2-8.1 m2 (house 42-56)",
+        minSource: "previous floor (feasibility); default is the reference size"
+      },
+      commonToilet: {
+        label: "Common Toilet",
+        defW: 6.5,
+        defH: 7.5,
+        minW: 4,
+        minH: 6,
+        doorWidth: 2.5,
+        habitable: false,
+        bedroom: false,
+        source: "Groot Parys: bathroom 4.7-8.2 m2; Kanpur toilet 5x7 ft",
+        minSource: "previous floor (feasibility); default is the reference size"
+      },
+      puja: {
+        label: "Puja",
+        defW: 5,
+        defH: 5,
+        minW: 4,
+        minH: 4,
+        doorWidth: 2.5,
+        habitable: false,
+        bedroom: false
+      },
+      study: {
+        label: "Study",
+        defW: 8,
+        defH: 10,
+        minW: 7,
+        minH: 9,
+        doorWidth: 3,
+        habitable: true,
+        bedroom: false,
+        minSource: "assumed"
+      },
+      store: {
+        label: "Store",
+        defW: 5,
+        defH: 6,
+        minW: 4,
+        minH: 5,
+        doorWidth: 2.5,
+        habitable: false,
+        bedroom: false,
+        minSource: "assumed"
+      },
+      utility: {
+        label: "Utility / Wash",
+        defW: 4,
+        defH: 8,
+        minW: 3.5,
+        minH: 6,
+        doorWidth: 2.5,
+        habitable: false,
+        bedroom: false,
+        minSource: "assumed"
+      },
+      stair: {
+        label: "Staircase",
+        defW: 7,
+        defH: 12,
+        minW: 6,
+        minH: 10,
+        doorWidth: 3,
+        habitable: false,
+        bedroom: false,
+        minSource: "assumed"
+      },
+      passage: {
+        label: "Passage",
+        defW: 3.5,
+        defH: 3.5,
+        minW: 3.5,
+        minH: 3.5,
+        doorWidth: 3.5,
+        habitable: false,
+        bedroom: false,
+        source: "Groot Parys: passage 1.0 m wide, 4-7 m long; Kanpur: 1.83 m passage"
+      }
+    },
+    windowWidthFt: 4,
+    ventilatorWidthFt: 2,
+    mainDoorWidthFt: 3.5,
+    openKitchenWidthFt: 4,
+    wallExternalFt: 0.75,
+    passageWidthFt: 3.5,
+    maxAspect: 2,
+    maxCirculationRatio: 0.12
+  };
+
+  // config/setbacks.json
+  var setbacks_default = {
+    source: "Generic defaults from the GharPlan brief. Verify with the local authority. City bye-law packs will override this file.",
+    cornerRoadSideMinM: 1.5,
+    bands: [
+      { maxAreaSqM: 100, frontM: 3, rearM: 0, sideM: 0, sideRule: "both" },
+      { maxAreaSqM: 250, frontM: 3, rearM: 1.5, sideM: 0, sideRule: "both" },
+      { maxAreaSqM: 500, frontM: 4.5, rearM: 3, sideM: 1.5, sideRule: "oneSide" },
+      { maxAreaSqM: null, frontM: 6, rearM: 3, sideM: 3, sideRule: "both" }
+    ]
+  };
+
+  // engine/units.ts
+  var FT_PER_M = 3.28084;
+  function feetToMetres(ft) {
+    return ft / FT_PER_M;
+  }
+  function formatLength(ft, unit = "ftin") {
+    if (unit === "m") return `${feetToMetres(ft).toFixed(2)} m`;
+    const totalInches = Math.round(ft * 12);
+    const feet = Math.floor(totalInches / 12);
+    const inches = totalInches - feet * 12;
+    return inches === 0 ? `${feet}'-0"` : `${feet}'-${inches}"`;
+  }
+
+  // engine/frame.ts
+  var WALL_EXTERNAL_FT = 0.75;
+  var HALF_WALL = WALL_EXTERNAL_FT / 2;
+  var SQM_PER_SQFT = 1 / 10.7639;
+  var SQ2 = Math.SQRT1_2;
+  var FACING_VECTOR = {
+    N: [0, 1],
+    NE: [SQ2, SQ2],
+    E: [1, 0],
+    SE: [SQ2, -SQ2],
+    S: [0, -1],
+    SW: [-SQ2, -SQ2],
+    W: [-1, 0],
+    NW: [-SQ2, SQ2]
+  };
+  function ceilQuarter(ft) {
+    return Math.ceil(ft * 4 - 1e-9) / 4 || 0;
+  }
+  function defaultSetbacks(input) {
+    const areaSqM = input.width * input.depth * SQM_PER_SQFT;
+    const band = setbacks_default.bands.find((b) => b.maxAreaSqM === null || areaSqM <= b.maxAreaSqM);
+    const sides = band.sideRule === "both" ? { left: band.sideM, right: band.sideM } : { left: band.sideM, right: 0 };
+    if (input.roadSide === "corner") {
+      sides[input.cornerSide] = Math.max(sides[input.cornerSide], setbacks_default.cornerRoadSideMinM);
+    }
+    return {
+      front: ceilQuarter(band.frontM * FT_PER_M),
+      rear: ceilQuarter(band.rearM * FT_PER_M),
+      left: ceilQuarter(sides.left * FT_PER_M),
+      right: ceilQuarter(sides.right * FT_PER_M)
+    };
+  }
+  function buildFrame(input) {
+    const defaults = defaultSetbacks(input);
+    const setbacks = { ...defaults, ...input.setbacks };
+    const buildable = {
+      x: setbacks.left,
+      y: setbacks.front,
+      w: input.width - setbacks.left - setbacks.right,
+      h: input.depth - setbacks.front - setbacks.rear
+    };
+    const interior = {
+      x: buildable.x + HALF_WALL,
+      y: buildable.y + HALF_WALL,
+      w: buildable.w - 2 * HALF_WALL,
+      h: buildable.h - 2 * HALF_WALL
+    };
+    const front = FACING_VECTOR[input.facing];
+    const inward = [-front[0], -front[1]];
+    const right = [inward[1], -inward[0]];
+    return { width: input.width, depth: input.depth, setbacks, buildable, interior, facing: input.facing, right, inward };
+  }
+  function compassOfPoint(px, py, frame) {
+    const dx = px - frame.width / 2;
+    const dy = py - frame.depth / 2;
+    const vx = dx * frame.right[0] + dy * frame.inward[0];
+    const vy = dx * frame.right[1] + dy * frame.inward[1];
+    const deg = (Math.atan2(vy, vx) * 180 / Math.PI + 360) % 360;
+    const names = ["E", "NE", "N", "NW", "W", "SW", "S", "SE"];
+    const idx = Math.round(deg / 45) % 8;
+    return names[idx];
+  }
+  function localToWorld(px, py, frame) {
+    const dx = px - frame.width / 2;
+    const dy = py - frame.depth / 2;
+    return {
+      x: dx * frame.right[0] + dy * frame.inward[0],
+      y: dx * frame.right[1] + dy * frame.inward[1]
+    };
+  }
+  function compassVector(c) {
+    const q = Math.SQRT1_2;
+    const v = {
+      N: [0, 1],
+      NE: [q, q],
+      E: [1, 0],
+      SE: [q, -q],
+      S: [0, -1],
+      SW: [-q, -q],
+      W: [-1, 0],
+      NW: [-q, q]
+    };
+    return v[c];
+  }
+
+  // engine/program.ts
+  var ROOMS = room_defaults_default.rooms;
+  var TOILET_KINDS = /* @__PURE__ */ new Set(["attachedToilet", "commonToilet"]);
+  var TOILET_TOL_FT = 1;
+  function spec(id, kind, overrides, attachedTo) {
+    const c = ROOMS[kind];
+    const o = overrides?.[kind] ?? {};
+    return {
+      id,
+      kind,
+      label: c.label,
+      // Toilets: default within 1 ft each way.
+      minW: o.minW ?? (TOILET_KINDS.has(kind) ? (o.defW ?? c.defW) - TOILET_TOL_FT : c.minW),
+      minH: o.minH ?? (TOILET_KINDS.has(kind) ? (o.defH ?? c.defH) - TOILET_TOL_FT : c.minH),
+      defW: o.defW ?? c.defW,
+      defH: o.defH ?? c.defH,
+      doorWidth: c.doorWidth,
+      habitable: c.habitable,
+      attachedTo
+    };
+  }
+  function buildProgram(input) {
+    const warnings = [];
+    const rooms = [];
+    rooms.push(spec("living", "living", input.roomSizes));
+    if (input.rooms.dining) rooms.push(spec("dining", "dining", input.roomSizes));
+    rooms.push(spec("kitchen", "kitchen", input.roomSizes));
+    const bedroomCount = input.bhk;
+    for (let i = 0; i < bedroomCount; i++) {
+      const isMaster = i === 0;
+      const id = isMaster ? "master" : `bed${i + 1}`;
+      rooms.push(spec(id, isMaster ? "master" : "bedroom", input.roomSizes));
+      if (input.attachedToilets[i]) {
+        rooms.push(spec(`toilet-${id}`, "attachedToilet", input.roomSizes, id));
+      }
+    }
+    if (input.rooms.guestBedroom) rooms.push(spec("guest", "guest", input.roomSizes));
+    if (input.rooms.commonToilet) rooms.push(spec("toilet-common", "commonToilet", input.roomSizes));
+    if (input.rooms.puja) rooms.push(spec("puja", "puja", input.roomSizes));
+    if (input.rooms.study) rooms.push(spec("study", "study", input.roomSizes));
+    if (input.rooms.store) rooms.push(spec("store", "store", input.roomSizes));
+    if (input.rooms.utility) rooms.push(spec("utility", "utility", input.roomSizes));
+    if (input.floors === 2 && input.staircase === "internal") rooms.push(spec("stair", "stair", input.roomSizes));
+    if (input.floors === 2 && input.staircase === "external") {
+      warnings.push("External staircase is not placed in the MVP; it is reserved for a future rental unit.");
+    }
+    if (input.rooms.balcony) {
+      warnings.push("Balcony is not placed in the MVP yet.");
+    }
+    if (input.floors === 2) {
+      warnings.push("First floor is not generated yet; the ground floor is shown with the staircase reserved.");
+    }
+    if (input.elderlyGroundBedroom && input.floors === 2) {
+      warnings.push("The elderly ground-floor bedroom rule is enforced once the first floor is generated.");
+    }
+    return { rooms, warnings };
+  }
+  function roomConfig(kind) {
+    return ROOMS[kind];
+  }
+
+  // engine/geometry.ts
+  var EPS = 1e-6;
+  function rectArea(r) {
+    return r.w * r.h;
+  }
+  function overlaps(a, b) {
+    return a.x < b.x + b.w - EPS && b.x < a.x + a.w - EPS && a.y < b.y + b.h - EPS && b.y < a.y + a.h - EPS;
+  }
+  function contains(outer, inner) {
+    return inner.x >= outer.x - EPS && inner.y >= outer.y - EPS && inner.x + inner.w <= outer.x + outer.w + EPS && inner.y + inner.h <= outer.y + outer.h + EPS;
+  }
+  function sharedEdge(a, b) {
+    const ayTop = a.y + a.h;
+    const axRight = a.x + a.w;
+    if (Math.abs(axRight - b.x) < EPS || Math.abs(b.x + b.w - a.x) < EPS) {
+      const x = Math.abs(axRight - b.x) < EPS ? axRight : a.x;
+      const y1 = Math.max(a.y, b.y);
+      const y2 = Math.min(ayTop, b.y + b.h);
+      if (y2 - y1 > EPS) return { axis: "v", x, y1, y2, length: y2 - y1 };
+    }
+    if (Math.abs(ayTop - b.y) < EPS || Math.abs(b.y + b.h - a.y) < EPS) {
+      const y = Math.abs(ayTop - b.y) < EPS ? ayTop : a.y;
+      const x1 = Math.max(a.x, b.x);
+      const x2 = Math.min(axRight, b.x + b.w);
+      if (x2 - x1 > EPS) return { axis: "h", y, x1, x2, length: x2 - x1 };
+    }
+    return null;
+  }
+  function exteriorSides(r, outer) {
+    const out = [];
+    if (Math.abs(r.y - outer.y) < EPS) out.push({ side: "front", length: r.w });
+    if (Math.abs(r.y + r.h - (outer.y + outer.h)) < EPS) out.push({ side: "back", length: r.w });
+    if (Math.abs(r.x - outer.x) < EPS) out.push({ side: "left", length: r.h });
+    if (Math.abs(r.x + r.w - (outer.x + outer.w)) < EPS) out.push({ side: "right", length: r.h });
+    return out;
+  }
+
+  // engine/vastu.ts
+  var PREFERENCE = {
+    master: {
+      rule: "Master bedroom in SW",
+      score: (c) => c === "SW" ? 1 : c === "W" || c === "S" ? 0.5 : 0
+    },
+    kitchen: {
+      rule: "Kitchen in SE (NW fallback)",
+      score: (c) => c === "SE" ? 1 : c === "NW" ? 0.6 : c === "E" || c === "S" ? 0.4 : 0
+    },
+    puja: {
+      rule: "Puja in NE",
+      score: (c) => c === "NE" ? 1 : c === "N" || c === "E" ? 0.6 : 0
+    },
+    commonToilet: {
+      rule: "Toilet in NW or W, never NE",
+      score: toiletScore
+    },
+    attachedToilet: {
+      rule: "Toilet in NW or W, never NE",
+      score: toiletScore
+    },
+    stair: {
+      rule: "Staircase in S, SW or W",
+      score: (c) => c === "S" || c === "SW" || c === "W" ? 1 : 0
+    }
+  };
+  function toiletScore(c) {
+    if (c === "NW" || c === "W") return 1;
+    if (c === "N" || c === "S") return 0.6;
+    if (c === "NE") return 0;
+    return 0.3;
+  }
+  function scoreVastu(rooms) {
+    const out = [];
+    for (const r of rooms) {
+      const pref = PREFERENCE[r.kind];
+      if (pref) out.push({ roomId: r.id, rule: pref.rule, score: pref.score(r.compass) });
+    }
+    const puja = rooms.find((r) => r.kind === "puja");
+    if (puja) {
+      const touchesToilet = rooms.some(
+        (r) => (r.kind === "commonToilet" || r.kind === "attachedToilet") && sharedEdge(puja.rect, r.rect) !== null
+      );
+      out.push({ roomId: puja.id, rule: "Puja not adjoining a toilet", score: touchesToilet ? 0 : 1 });
+    }
+    return out;
+  }
+  function vastuMean(rules) {
+    if (rules.length === 0) return null;
+    return rules.reduce((sum, r) => sum + r.score, 0) / rules.length;
+  }
+  var PREFERRED_ZONES = {
+    master: ["SW"],
+    kitchen: ["SE", "NW"],
+    puja: ["NE"],
+    commonToilet: ["NW", "W"],
+    attachedToilet: ["NW", "W"],
+    stair: ["S", "SW", "W"]
+  };
+
+  // engine/parking.ts
+  var CAR = { along: 18, deep: 9 };
+  var TWO_WHEELER = { along: 3, deep: 7 };
+  function parkingFor(frame, input, end, warnings) {
+    const slots = [];
+    const want = [];
+    for (let i = 0; i < input.parking.cars; i++) want.push({ kind: "car", ...CAR });
+    for (let i = 0; i < input.parking.twoWheelers; i++) want.push({ kind: "two-wheeler", ...TWO_WHEELER });
+    if (want.length === 0) return slots;
+    const strip = frame.setbacks.front;
+    const need = want.reduce((s2, w) => s2 + w.along, 0);
+    if (want.some((w) => w.deep > strip)) {
+      warnings.push("Front setback is too shallow for car parking; a stilt parking bay is needed and is not placed in the MVP.");
+      return slots;
+    }
+    if (need > frame.width) {
+      warnings.push("Plot frontage is too narrow for the requested parking; not placed.");
+      return slots;
+    }
+    const start = end === "left" ? 0 : frame.width - need;
+    let x = start;
+    for (const w of want) {
+      slots.push({ kind: w.kind, rect: { x, y: 0, w: w.along, h: w.deep } });
+      x += w.along;
+    }
+    return slots;
+  }
+
+  // engine/evaluate.ts
+  var MAX_ASPECT = 2;
+  var MAX_CIRCULATION = 0.12;
+  var IDEAL_CIRCULATION_MIN = 0.04;
+  var WINDOW_FT = 4;
+  var VENT_FT = 2;
+  var DOOR_CLEARANCE = 0.5;
+  var VASTU_FLAG_BELOW = 0.6;
+  var MAX_PASSAGE_FT = 15;
+  var MAX_PASSAGE_WIDTH_FT = 5;
+  var SERVICE_ROOM_KINDS = /* @__PURE__ */ new Set(["attachedToilet", "commonToilet", "utility", "store", "puja"]);
+  var MAX_PASSAGE_RATIO = 3;
+  var MAIN_DOOR_FT = 3.5;
+  var BEDROOM_KINDS = /* @__PURE__ */ new Set(["master", "bedroom", "guest"]);
+  function isBedroom(kind) {
+    return BEDROOM_KINDS.has(kind);
+  }
+  function isToilet(kind) {
+    return kind === "commonToilet" || kind === "attachedToilet";
+  }
+  function doorable(a, b, widthOf) {
+    const edge = sharedEdge(a.rect, b.rect);
+    if (!edge) return false;
+    const width = Math.min(widthOf(a), widthOf(b));
+    return edge.length >= width + DOOR_CLEARANCE;
+  }
+  function doorWidthOf(r, specs) {
+    if (r.kind === "passage") return 3.5;
+    return specs.get(r.id)?.doorWidth ?? roomConfig(r.kind).doorWidth;
+  }
+  function evaluate(cand, frame, input, specs) {
+    const violations = [];
+    const specById = new Map(specs.map((s) => [s.id, s]));
+    const rooms = cand.rooms;
+    const widthOf = (r) => doorWidthOf(r, specById);
+    for (const r of rooms) {
+      if (!contains(frame.interior, r.rect)) violations.push(`${r.label} lies outside the building envelope`);
+    }
+    for (let i = 0; i < rooms.length; i++) {
+      for (let j = i + 1; j < rooms.length; j++) {
+        if (overlaps(rooms[i].rect, rooms[j].rect)) violations.push(`${rooms[i].label} overlaps ${rooms[j].label}`);
+      }
+    }
+    const openShare = (input.openSpacePct ?? 0) / 100;
+    const roomsArea = rooms.reduce((s, r) => s + rectArea(r.rect), 0);
+    if (roomsArea > rectArea(frame.buildable) * (1 - openShare) + 1e-6) {
+      violations.push(`Rooms cover more than ${100 - (input.openSpacePct ?? 0)}% of the built-up area; leave ${input.openSpacePct ?? 0}% open`);
+    }
+    for (const r of rooms) {
+      if (r.kind !== "passage") continue;
+      const long = Math.max(r.rect.w, r.rect.h);
+      const short = Math.min(r.rect.w, r.rect.h);
+      if (long > MAX_PASSAGE_FT + 1e-6 || short > MAX_PASSAGE_WIDTH_FT + 1e-6 || long / short > MAX_PASSAGE_RATIO + 1e-6) {
+        violations.push(
+          `Passage is a corridor (${long.toFixed(1)} ft by ${short.toFixed(1)} ft); a passage must be ${MAX_PASSAGE_FT} ft or less long, ${MAX_PASSAGE_WIDTH_FT} ft or less wide, and at most 1:${MAX_PASSAGE_RATIO}`
+        );
+      }
+    }
+    for (const r of rooms) {
+      if (r.kind === "passage") continue;
+      const spec2 = specById.get(r.id);
+      const short = Math.min(r.rect.w, r.rect.h);
+      const long = Math.max(r.rect.w, r.rect.h);
+      const minShort = Math.min(spec2.minW, spec2.minH);
+      const minLong = Math.max(spec2.minW, spec2.minH);
+      if (short + 1e-6 < minShort || long + 1e-6 < minLong) {
+        violations.push(`${r.label} is below minimum size`);
+      }
+      if (long / short > MAX_ASPECT + 1e-6) violations.push(`${r.label} is narrower than 1:${MAX_ASPECT}`);
+    }
+    const exterior = /* @__PURE__ */ new Map();
+    for (const r of rooms) {
+      const ext = exteriorSides(r.rect, frame.interior);
+      exterior.set(r.id, ext);
+      if (r.kind === "passage") continue;
+      const needsWindow = roomConfig(r.kind).habitable;
+      const needsVent = isToilet(r.kind) || r.kind === "utility";
+      if (!needsWindow && !needsVent) continue;
+      const need = needsWindow ? WINDOW_FT + 1 : VENT_FT + 1;
+      const longest = ext.reduce((m, e) => Math.max(m, e.length), 0);
+      if (longest < need) {
+        violations.push(needsWindow ? `${r.label} has no room for a window on an outer wall` : `${r.label} has no outer wall for a ventilator`);
+      }
+    }
+    const living = rooms.find((r) => r.kind === "living");
+    const roadSides = roadSidesOf(input);
+    const livingRoad = living ? (exterior.get(living.id) ?? []).filter((e) => roadSides.includes(e.side)) : [];
+    if (living && livingRoad.length === 0) violations.push("Living room does not face the road (no entrance)");
+    if (living && livingRoad.length > 0 && Math.max(...livingRoad.map((e) => e.length)) < MAIN_DOOR_FT + 1) {
+      violations.push("Living room road frontage too short for the main door");
+    }
+    const livingOnFront = living ? (exterior.get(living.id) ?? []).some((e) => e.side === "front") : false;
+    if (living && livingOnFront && !mainDoorClear(living.rect, frame, input)) {
+      violations.push("Living room has no clear stretch for the main door beside the parking");
+    }
+    const parent = /* @__PURE__ */ new Map();
+    if (living) {
+      const reached = /* @__PURE__ */ new Set([living.id]);
+      const isAttachedToilet = (r) => r.kind === "attachedToilet";
+      const linkable = (a, b) => {
+        if (isAttachedToilet(a) || isAttachedToilet(b)) {
+          const toilet = isAttachedToilet(a) ? a : b;
+          const other = toilet === a ? b : a;
+          return specById.get(toilet.id)?.attachedTo === other.id && doorable(a, b, widthOf);
+        }
+        return doorable(a, b, widthOf);
+      };
+      const queue = [living];
+      while (queue.length) {
+        const u = queue.shift();
+        if (isBedroom(u.kind) || isAttachedToilet(u)) continue;
+        for (const v of rooms) {
+          if (reached.has(v.id) || v.kind === "attachedToilet") continue;
+          if (linkable(u, v)) {
+            reached.add(v.id);
+            parent.set(v.id, u.id);
+            queue.push(v);
+          }
+        }
+      }
+      const commonToilets = rooms.filter((r) => r.kind === "commonToilet");
+      for (const t of commonToilets) {
+        if (!reached.has(t.id)) violations.push("Common toilet can only be reached through a bedroom");
+      }
+      let grew = true;
+      while (grew) {
+        grew = false;
+        for (const v of rooms) {
+          if (reached.has(v.id)) continue;
+          const from = rooms.find((u) => reached.has(u.id) && linkable(u, v));
+          if (from) {
+            reached.add(v.id);
+            parent.set(v.id, from.id);
+            grew = true;
+          }
+        }
+      }
+      for (const r of rooms) {
+        if (!reached.has(r.id)) violations.push(`${r.label} cannot be reached from the entrance`);
+      }
+    }
+    const vastuRules = scoreVastu(rooms);
+    const vastuFlags = vastuRules.filter((rule) => rule.score < VASTU_FLAG_BELOW).map((rule) => {
+      const r = rooms.find((x) => x.id === rule.roomId);
+      return `${r.label}: does not meet "${rule.rule}"`;
+    });
+    const scorecard = scoreCard(cand, frame, input, specById, exterior, vastuRules, parent);
+    const total = scorecard.total;
+    return { valid: violations.length === 0, violations, vastuFlags, scorecard, vastuRules, total, parent };
+  }
+  function mainDoorClear(living, frame, input) {
+    const edgeFrom = living.x;
+    const edgeTo = living.x + living.w;
+    if (edgeTo - edgeFrom < MAIN_DOOR_FT + 1) return false;
+    for (const end of ["left", "right"]) {
+      const slots = parkingFor(frame, input, end, []);
+      const blocked = slots.map((p) => [p.rect.x - 1, p.rect.x + p.rect.w + 1]);
+      let free = [[edgeFrom, edgeTo]];
+      for (const [lo, hi] of blocked) {
+        free = free.flatMap(([a, b]) => [
+          ...lo > a ? [[a, Math.min(b, lo)]] : [],
+          ...hi < b ? [[Math.max(a, hi), b]] : []
+        ]);
+      }
+      if (free.some(([a, b]) => b - a >= MAIN_DOOR_FT + 1)) return true;
+    }
+    return false;
+  }
+  function accessParent(parent, roomId, rooms) {
+    const id = parent.get(roomId);
+    return id ? rooms.find((r) => r.id === id) ?? null : null;
+  }
+  function roadSidesOf(input) {
+    const sides = ["front"];
+    if (input.roadSide === "corner") {
+      sides.push(input.cornerSide);
+    }
+    return sides;
+  }
+  function scoreCard(cand, frame, input, specById, exterior, vastuRules, parent) {
+    const rooms = cand.rooms;
+    const builtUp = rectArea(frame.buildable);
+    const plotArea = frame.width * frame.depth;
+    const carpet = rooms.reduce((s, r) => s + clearArea(r, exterior.get(r.id) ?? []), 0);
+    const passage = rooms.filter((r) => r.kind === "passage").reduce((s, r) => s + clearArea(r, exterior.get(r.id) ?? []), 0);
+    const circRatio = passage / builtUp;
+    const sized = rooms.filter((r) => r.kind !== "passage");
+    const sizes = sized.reduce((s, r) => {
+      const spec2 = specById.get(r.id);
+      const maxW = spec2.defW + 2;
+      const maxH = spec2.defH + 2;
+      const over = Math.min(
+        Math.max(0, r.rect.w - maxW) + Math.max(0, r.rect.h - maxH),
+        Math.max(0, r.rect.w - maxH) + Math.max(0, r.rect.h - maxW)
+      );
+      const serviceRoom = SERVICE_ROOM_KINDS.has(r.kind);
+      return s + Math.min(1, rectArea(r.rect) / (spec2.defW * spec2.defH)) * Math.max(0, 1 - over / (serviceRoom ? 1.5 : 4));
+    }, 0) / Math.max(1, sized.length);
+    const ventRooms = rooms.filter((r) => roomConfig(r.kind).habitable || isToilet(r.kind) || r.kind === "utility");
+    const vent = ventRooms.reduce((s, r) => {
+      const sides = new Set((exterior.get(r.id) ?? []).map((e) => e.side)).size;
+      return s + (sides >= 2 ? 1 : sides === 1 ? 0.6 : 0);
+    }, 0) / Math.max(1, ventRooms.length);
+    const circScore = circRatio > MAX_CIRCULATION ? clamp01(1 - (circRatio - MAX_CIRCULATION) * 5) : circRatio >= IDEAL_CIRCULATION_MIN ? 1 : 0.6 + circRatio / IDEAL_CIRCULATION_MIN * 0.4;
+    const beds = rooms.filter((r) => isBedroom(r.kind));
+    const bedAccess = beds.length === 0 ? 1 : beds.filter((b) => {
+      const from = accessParent(parent, b.id, rooms);
+      return from !== null && (from.kind === "passage" || from.kind === "living");
+    }).length / beds.length;
+    const roadSides = roadSidesOf(input);
+    const bedsOffRoad = beds.length === 0 ? 1 : beds.filter((b) => !(exterior.get(b.id) ?? []).some((e) => roadSides.includes(e.side))).length / beds.length;
+    const wetRooms = rooms.filter((r) => r.kind === "commonToilet" || r.kind === "attachedToilet" || r.kind === "utility");
+    const wetClustered = wetRooms.length <= 1 ? 1 : wetRooms.filter((w2) => wetRooms.some((o) => o !== w2 && sharedEdge(w2.rect, o.rect))).length / wetRooms.length;
+    const livingRoom = rooms.find((r) => r.kind === "living");
+    const diningRoom = rooms.find((r) => r.kind === "dining");
+    const diningNextToLiving = !diningRoom || !livingRoom ? 1 : sharedEdge(diningRoom.rect, livingRoom.rect) ? 1 : 0;
+    const zoning = (bedsOffRoad + wetClustered + diningNextToLiving) / 3;
+    const kitchen = rooms.find((r) => r.kind === "kitchen");
+    const dining = rooms.find((r) => r.kind === "dining");
+    const kitchenDining = !dining || !kitchen ? 1 : sharedEdge(kitchen.rect, dining.rect)?.length ? 1 : 0;
+    const openTrio = rooms.filter((r) => ["living", "dining", "kitchen"].includes(r.kind));
+    let openPairs = 0;
+    for (let i = 0; i < openTrio.length; i++) {
+      for (let j = i + 1; j < openTrio.length; j++) {
+        if ((sharedEdge(openTrio[i].rect, openTrio[j].rect)?.length ?? 0) >= 4) openPairs++;
+      }
+    }
+    const openScore = Math.min(1, openPairs / 2);
+    const vastu = vastuMean(vastuRules);
+    const w = {
+      size: 0.15,
+      vent: 0.15,
+      circ: 0.12,
+      kd: 0.08,
+      open: 0.08,
+      access: 0.14,
+      zoning: 0.12,
+      vastu: input.vastu === "strict" ? 0.3 : input.vastu === "moderate" ? 0.15 : 0
+    };
+    if (input.priority === "size") w.size *= 1.8;
+    if (input.priority === "ventilation") w.vent *= 1.8;
+    if (input.priority === "openSpace") w.open *= 2.5;
+    const parts = [
+      [w.size, sizes],
+      [w.vent, vent],
+      [w.circ, circScore],
+      [w.kd, kitchenDining],
+      [w.open, openScore],
+      [w.access, bedAccess],
+      [w.zoning, zoning]
+    ];
+    if (vastu !== null) parts.push([w.vastu, vastu]);
+    const wsum = parts.reduce((s, [wt]) => s + wt, 0);
+    const total = parts.reduce((s, [wt, v]) => s + wt * v, 0) / wsum * 100;
+    return {
+      carpetArea: carpet,
+      builtUpArea: builtUp,
+      groundCoverage: builtUp / plotArea,
+      efficiency: carpet / builtUp * 100,
+      circulation: circRatio * 100,
+      vastu: vastu === null ? null : vastu * 100,
+      ventilation: vent * 100,
+      sizes: sizes * 100,
+      total
+    };
+  }
+  var WALL_EXTERNAL_HALF = 0.375;
+  var WALL_INTERNAL_HALF = 0.1875;
+  function clearArea(r, exterior) {
+    const ext = new Set(exterior.map((e) => e.side));
+    const dx = (ext.has("left") ? WALL_EXTERNAL_HALF : WALL_INTERNAL_HALF) + (ext.has("right") ? WALL_EXTERNAL_HALF : WALL_INTERNAL_HALF);
+    const dy = (ext.has("front") ? WALL_EXTERNAL_HALF : WALL_INTERNAL_HALF) + (ext.has("back") ? WALL_EXTERNAL_HALF : WALL_INTERNAL_HALF);
+    return Math.max(0, r.rect.w - dx) * Math.max(0, r.rect.h - dy);
+  }
+  function clamp01(v) {
+    return Math.max(0, Math.min(1, v));
+  }
+
+  // engine/rng.ts
+  function mulberry32(seed) {
+    let a = seed >>> 0;
+    return () => {
+      a = a + 1831565813 | 0;
+      let t = Math.imul(a ^ a >>> 15, 1 | a);
+      t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t;
+      return ((t ^ t >>> 14) >>> 0) / 4294967296;
+    };
+  }
+  function shuffle(items, rand) {
+    const out = items.slice();
+    for (let i = out.length - 1; i > 0; i--) {
+      const j = Math.floor(rand() * (i + 1));
+      [out[i], out[j]] = [out[j], out[i]];
+    }
+    return out;
+  }
+
+  // engine/limits.ts
+  var LIMITS = {
+    plotFt: { min: 10, max: 200 },
+    setbackFt: { min: 0, max: 100 },
+    roomFt: { min: 2, max: 60 },
+    openSpacePct: { min: 0, max: 100 }
+  };
+  function validatePlotInput(input) {
+    const errors = [];
+    const inRange = (v, r) => Number.isFinite(v) && v >= r.min && v <= r.max;
+    if (!inRange(input.width, LIMITS.plotFt) || !inRange(input.depth, LIMITS.plotFt)) {
+      errors.push(`Plot width and depth must be between ${LIMITS.plotFt.min} and ${LIMITS.plotFt.max} ft.`);
+    }
+    for (const [key, v] of Object.entries(input.setbacks ?? {})) {
+      if (v !== void 0 && !inRange(v, LIMITS.setbackFt)) errors.push(`Setback ${key} must be between 0 and ${LIMITS.setbackFt.max} ft.`);
+    }
+    if (input.openSpacePct !== void 0 && !inRange(input.openSpacePct, LIMITS.openSpacePct)) {
+      errors.push(`Open space must be between 0 and ${LIMITS.openSpacePct.max}% of the built-up area.`);
+    }
+    for (const [kind, o] of Object.entries(input.roomSizes ?? {})) {
+      if (!o) continue;
+      for (const v of [o.defW, o.defH, o.minW, o.minH]) {
+        if (v !== void 0 && !inRange(v, LIMITS.roomFt)) {
+          errors.push(`${kind} sizes must be between ${LIMITS.roomFt.min} and ${LIMITS.roomFt.max} ft.`);
+          break;
+        }
+      }
+    }
+    return [...new Set(errors)];
+  }
+
+  // engine/furniture.ts
+  var WALL_MARGIN = 0.5;
+  var STEP = 0.5;
+  var WINDOW_CLEAR_DEPTH = 2;
+  var LIBRARY = {
+    master: [
+      { kind: "bed", variants: [
+        { label: "King bed", long: 6.5, short: 6, clearance: 2.5 },
+        { label: "Queen bed", long: 6.5, short: 5, clearance: 2.5 },
+        { label: "Single bed", long: 6.5, short: 3, clearance: 2.5 }
+      ], against: "short", wallRule: "bed" },
+      { kind: "wardrobe", variants: [{ label: "Wardrobe", long: 6, short: 2, clearance: 2.5 }, { label: "Wardrobe", long: 4, short: 2, clearance: 2.5 }], against: "long" },
+      { kind: "side-table", variants: [{ label: "Side table", long: 1.5, short: 1.5, clearance: 0, assumed: true }], against: "long" }
+    ],
+    bedroom: [
+      { kind: "bed", variants: [
+        { label: "Queen bed", long: 6.5, short: 5, clearance: 2.5 },
+        { label: "Single bed", long: 6.5, short: 3, clearance: 2.5 }
+      ], against: "short", wallRule: "bed" },
+      { kind: "wardrobe", variants: [{ label: "Wardrobe", long: 6, short: 2, clearance: 2.5 }, { label: "Wardrobe", long: 4, short: 2, clearance: 2.5 }], against: "long" }
+    ],
+    guest: [
+      { kind: "bed", variants: [
+        { label: "Queen bed", long: 6.5, short: 5, clearance: 2.5 },
+        { label: "Single bed", long: 6.5, short: 3, clearance: 2.5 }
+      ], against: "short", wallRule: "bed" },
+      { kind: "wardrobe", variants: [{ label: "Wardrobe", long: 6, short: 2, clearance: 2.5 }, { label: "Wardrobe", long: 4, short: 2, clearance: 2.5 }], against: "long" }
+    ],
+    living: [
+      { kind: "sofa", variants: [
+        { label: "3-seater sofa", long: 7, short: 3, clearance: 2 },
+        { label: "2-seater sofa", long: 5, short: 3, clearance: 2 }
+      ], against: "long" },
+      { kind: "tv-unit", variants: [{ label: "TV unit", long: 6, short: 1.5, clearance: 0 }], against: "long", wallRule: "tv" },
+      { kind: "centre-table", variants: [{ label: "Centre table", long: 3, short: 2, clearance: 0, assumed: true }], against: "long" }
+    ],
+    dining: [
+      { kind: "dining-table", variants: [
+        { label: "6-seater table", long: 6, short: 3, clearance: 2.5 },
+        { label: "4-seater table", long: 4, short: 3, clearance: 2.5 }
+      ], against: "long" }
+    ],
+    kitchen: [
+      { kind: "platform", variants: [
+        { label: "Kitchen platform", long: 7, short: 2, clearance: 2.5 },
+        { label: "Kitchen platform", long: 5, short: 2, clearance: 2.5 }
+      ], against: "long" },
+      { kind: "fridge", variants: [{ label: "Fridge", long: 2.5, short: 2.5, clearance: 0 }], against: "long" }
+    ],
+    attachedToilet: [
+      { kind: "wc", variants: [{ label: "WC", long: 2.5, short: 1.5, clearance: 1.5, assumed: true }], against: "long" },
+      { kind: "basin", variants: [{ label: "Wash basin", long: 2, short: 1.5, clearance: 1.5, assumed: true }], against: "long" },
+      { kind: "shower", variants: [{ label: "Shower", long: 3, short: 3, clearance: 0, assumed: true }], against: "long" }
+    ],
+    commonToilet: [
+      { kind: "wc", variants: [{ label: "WC", long: 2.5, short: 1.5, clearance: 1.5, assumed: true }], against: "long" },
+      { kind: "basin", variants: [{ label: "Wash basin", long: 2, short: 1.5, clearance: 1.5, assumed: true }], against: "long" }
+    ],
+    puja: [
+      { kind: "mandir", variants: [{ label: "Mandir unit", long: 3, short: 1.5, clearance: 0, assumed: true }], against: "long" }
+    ],
+    study: [
+      { kind: "desk", variants: [{ label: "Study desk", long: 4, short: 2, clearance: 2.5 }], against: "long" },
+      { kind: "bookshelf", variants: [{ label: "Bookshelf", long: 3, short: 1, clearance: 0, assumed: true }], against: "long" }
+    ],
+    utility: [
+      { kind: "washer", variants: [{ label: "Washing machine", long: 2, short: 2, clearance: 1.5, assumed: true }], against: "long" }
+    ]
+  };
+  function rectsOverlap(a, b) {
+    return overlaps(a, b);
+  }
+  function clearanceFor(body, wall, c) {
+    if (c <= 0) return body;
+    switch (wall) {
+      case "front":
+        return { x: body.x - c, y: body.y, w: body.w + 2 * c, h: body.h + c };
+      case "back":
+        return { x: body.x - c, y: body.y - c, w: body.w + 2 * c, h: body.h + c };
+      case "left":
+        return { x: body.x, y: body.y - c, w: body.w + c, h: body.h + 2 * c };
+      case "right":
+        return { x: body.x - c, y: body.y - c, w: body.w + c, h: body.h + 2 * c };
+    }
+  }
+  function wallCompass(room, wall, frame) {
+    const mx = wall === "left" ? room.x : wall === "right" ? room.x + room.w : room.x + room.w / 2;
+    const my = wall === "front" ? room.y : wall === "back" ? room.y + room.h : room.y + room.h / 2;
+    return compassOfPoint(mx, my, frame);
+  }
+  function zonesFromOpenings(openings, rooms) {
+    const zones = [];
+    for (const o of openings) {
+      const horizontal = Math.abs(o.a.y - o.b.y) < 1e-9;
+      const lo = horizontal ? Math.min(o.a.x, o.b.x) : Math.min(o.a.y, o.b.y);
+      const hi = horizontal ? Math.max(o.a.x, o.b.x) : Math.max(o.a.y, o.b.y);
+      const at = horizontal ? o.a.y : o.a.x;
+      for (const room of rooms) {
+        const r = room.rect;
+        const onRoom = horizontal ? (Math.abs(at - r.y) < 1e-6 || Math.abs(at - (r.y + r.h)) < 1e-6) && lo >= r.x - 1e-6 && hi <= r.x + r.w + 1e-6 : (Math.abs(at - r.x) < 1e-6 || Math.abs(at - (r.x + r.w)) < 1e-6) && lo >= r.y - 1e-6 && hi <= r.y + r.h + 1e-6;
+        if (!onRoom) continue;
+        const nearLow = horizontal ? Math.abs(at - r.y) < 1e-6 : Math.abs(at - r.x) < 1e-6;
+        const isDoor = o.kind === "door" || o.kind === "mainDoor" || o.kind === "opening";
+        const isWindow = o.kind === "window" || o.kind === "ventilator";
+        if (!isDoor && !isWindow) continue;
+        if (isWindow && room.id !== o.roomId) continue;
+        const depth = isWindow ? WINDOW_CLEAR_DEPTH : o.width;
+        const span = hi - lo;
+        const why = isWindow ? "window" : "door";
+        if (horizontal) {
+          zones.push({ roomId: room.id, rect: { x: lo - STEP, y: nearLow ? r.y : r.y + r.h - depth, w: span + 2 * STEP, h: depth }, why });
+        } else {
+          zones.push({ roomId: room.id, rect: { x: nearLow ? r.x : r.x + r.w - depth, y: lo - STEP, w: depth, h: span + 2 * STEP }, why });
+        }
+      }
+    }
+    return zones;
+  }
+  function candidatesOnWall(room, size, orient, wall) {
+    const along = orient === "long" ? size.long : size.short;
+    const depth = orient === "long" ? size.short : size.long;
+    const out = [];
+    const horizontalWall = wall === "front" || wall === "back";
+    const alongLen = horizontalWall ? room.w : room.h;
+    if (along > alongLen - 2 * WALL_MARGIN + 1e-9) return out;
+    const depthLimit = horizontalWall ? room.h : room.w;
+    if (depth > depthLimit - 2 * WALL_MARGIN + 1e-9) return out;
+    const start = horizontalWall ? room.x : room.y;
+    const end = start + alongLen - 2 * WALL_MARGIN - along;
+    for (let p = start + WALL_MARGIN; p <= end + 1e-9; p += STEP) {
+      if (wall === "front") out.push({ body: { x: p, y: room.y + WALL_MARGIN, w: along, h: depth }, wall });
+      if (wall === "back") out.push({ body: { x: p, y: room.y + room.h - WALL_MARGIN - depth, w: along, h: depth }, wall });
+      if (wall === "left") out.push({ body: { x: room.x + WALL_MARGIN, y: p, w: depth, h: along }, wall });
+      if (wall === "right") out.push({ body: { x: room.x + room.w - WALL_MARGIN - depth, y: p, w: depth, h: along }, wall });
+    }
+    return out;
+  }
+  var WALLS = ["front", "back", "left", "right"];
+  var FREE_STANDING = /* @__PURE__ */ new Set(["dining-table", "centre-table", "sofa"]);
+  function expand(body, c) {
+    return c <= 0 ? body : { x: body.x - c, y: body.y - c, w: body.w + 2 * c, h: body.h + 2 * c };
+  }
+  function freeCandidates(room, size) {
+    const cx = room.x + room.w / 2;
+    const cy = room.y + room.h / 2;
+    const out = [];
+    for (const [w, h] of [[size.long, size.short], [size.short, size.long]]) {
+      for (let x = room.x + WALL_MARGIN; x + w <= room.x + room.w - WALL_MARGIN + 1e-9; x += STEP) {
+        for (let y = room.y + WALL_MARGIN; y + h <= room.y + room.h - WALL_MARGIN + 1e-9; y += STEP) {
+          out.push({ x, y, w, h });
+        }
+      }
+    }
+    const dist = (r) => Math.hypot(r.x + r.w / 2 - cx, r.y + r.h / 2 - cy);
+    return out.sort((a, b) => dist(a) - dist(b));
+  }
+  function placeFurniture(rooms, openings, frame, input) {
+    const items = [];
+    const warnings = [];
+    let missing = 0;
+    const zones = zonesFromOpenings(openings, rooms);
+    let n = 0;
+    const placedBodies = [];
+    const placedClearances = [];
+    const fits = (body, clearance, room) => {
+      if (!contains(room.rect, body)) return false;
+      for (const b of placedBodies) if (rectsOverlap(b.body, body)) return false;
+      for (const c of placedClearances) if (rectsOverlap(c, body)) return false;
+      if (!contains(room.rect, clearance)) return false;
+      for (const b of placedBodies) if (rectsOverlap(b.body, clearance)) return false;
+      for (const z of zones) if (z.roomId === room.id && rectsOverlap(z.rect, body)) return false;
+      return true;
+    };
+    const order = [...rooms].sort((a, b) => rank(a.kind) - rank(b.kind));
+    for (const room of order) {
+      const templates = LIBRARY[room.kind];
+      if (!templates) continue;
+      let sofaWall = null;
+      for (const tpl of templates) {
+        let placed = false;
+        for (const variant of tpl.variants) {
+          if (placed) break;
+          const walls = WALLS.map((w) => ({ w, score: wallScore(tpl, room, w, frame, input, sofaWall) })).filter((x) => x.score > -Infinity).sort((a, b) => b.score - a.score);
+          for (const { w } of walls) {
+            const orients = [tpl.against, tpl.against === "long" ? "short" : "long"];
+            const cands = orients.flatMap((o) => candidatesOnWall(room.rect, variant, o, w));
+            for (const c of cands) {
+              const clearance = clearanceFor(c.body, c.wall, variant.clearance);
+              if (!fits(c.body, clearance, room)) continue;
+              n++;
+              const item = {
+                id: `f${n}`,
+                roomId: room.id,
+                kind: tpl.kind,
+                label: variant.label,
+                rect: c.body,
+                clearance: variant.clearance > 0 ? clearance : null,
+                assumed: variant.assumed ?? false
+              };
+              items.push(item);
+              placedBodies.push({ roomId: room.id, body: c.body });
+              if (item.clearance) placedClearances.push(item.clearance);
+              if (tpl.kind === "sofa") sofaWall = w;
+              placed = true;
+              break;
+            }
+            if (placed) break;
+          }
+        }
+        if (!placed && FREE_STANDING.has(tpl.kind)) {
+          for (const variant of tpl.variants) {
+            if (placed) break;
+            for (const body of freeCandidates(room.rect, variant)) {
+              const clearance = expand(body, variant.clearance);
+              if (!fits(body, clearance, room)) continue;
+              n++;
+              items.push({
+                id: `f${n}`,
+                roomId: room.id,
+                kind: tpl.kind,
+                label: variant.label,
+                rect: body,
+                clearance: variant.clearance > 0 ? clearance : null,
+                assumed: variant.assumed ?? false
+              });
+              placedBodies.push({ roomId: room.id, body });
+              if (variant.clearance > 0) placedClearances.push(clearance);
+              placed = true;
+              break;
+            }
+          }
+        }
+        if (!placed && !(tpl.kind === "tv-unit" && sofaWall === null)) {
+          missing++;
+          warnings.push(`${room.label}: no room for ${tpl.kind.replace("-", " ")}`);
+        }
+      }
+    }
+    return { items, warnings: [...new Set(warnings)], missing };
+  }
+  function rank(kind) {
+    const order = ["master", "living", "dining", "bedroom", "guest", "kitchen", "study", "attachedToilet", "commonToilet", "puja", "utility"];
+    const i = order.indexOf(kind);
+    return i < 0 ? 99 : i;
+  }
+  function wallScore(tpl, room, wall, frame, input, sofaWall) {
+    if (tpl.kind === "tv-unit" && sofaWall) {
+      const opposite = { front: "back", back: "front", left: "right", right: "left" };
+      return wall === opposite[sofaWall] ? 1 : -Infinity;
+    }
+    if (tpl.wallRule === "bed" && input.vastu !== "none") {
+      const c = wallCompass(room.rect, wall, frame);
+      if (c === "S" || c === "W" || c === "SW") return 2;
+      if (c === "SE" || c === "NW") return 1;
+      return 0;
+    }
+    return 0;
+  }
+
+  // engine/generate.ts
+  var PASSAGE_FT = room_defaults_default.passageWidthFt;
+  var WINDOW_FT2 = room_defaults_default.windowWidthFt;
+  var VENT_FT2 = room_defaults_default.ventilatorWidthFt;
+  var MAIN_DOOR_FT2 = room_defaults_default.mainDoorWidthFt;
+  var OPEN_KITCHEN_FT = room_defaults_default.openKitchenWidthFt;
+  var PASSAGE_PROBABILITY = 0.2;
+  var PASSAGE_ALLOWANCE_FT = 10;
+  var MIN_OPEN_FT = 3;
+  var ROOM_FILL_TARGET = 1;
+  var MIN_SLICE_FT = 3;
+  var MIN_DISTINCT = 0.35;
+  var STAGGER_PROBABILITY = 0.15;
+  var STAGGER_DEPTHS_FT = [2, 3, 4, 5];
+  var FURNITURE_SHORTLIST = 60;
+  var MAX_GROWTH_FT = 2;
+  var MISSING_FURNITURE_COST = 6;
+  function normaliseInput(input) {
+    const attached = Array.from({ length: input.bhk }, (_, i) => input.attachedToilets[i] ?? i === 0);
+    return { ...input, attachedToilets: attached };
+  }
+  function generatePlans(rawInput, opts = {}) {
+    const input = normaliseInput(rawInput);
+    const limitErrors = validatePlotInput(input);
+    if (limitErrors.length > 0) return { layouts: [], errors: limitErrors, warnings: [], stats: { sampled: 0, valid: 0 } };
+    const count = opts.count ?? 3;
+    const restarts = opts.restarts ?? 400;
+    const seed = opts.seed ?? 20260101;
+    const errors = [];
+    const warnings = [];
+    const frame = buildFrame(input);
+    const program = buildProgram(input);
+    warnings.push(...program.warnings);
+    if (frame.interior.w <= 0 || frame.interior.h <= 0) {
+      return { layouts: [], errors: ["Setbacks leave no buildable area on this plot."], warnings, stats: { sampled: 0, valid: 0 } };
+    }
+    const items = allocate(program.rooms, frame.interior);
+    const minNeeded = program.rooms.reduce((s, r) => s + r.minW * r.minH, 0);
+    const interiorArea = frame.interior.w * frame.interior.h;
+    if (minNeeded > interiorArea) {
+      errors.push(
+        `Plot is too small for this programme: rooms need about ${Math.round(minNeeded)} sq ft, but the building envelope is ${Math.round(interiorArea)} sq ft. Reduce rooms or enlarge the plot.`
+      );
+      return { layouts: [], errors, warnings, stats: { sampled: 0, valid: 0 } };
+    }
+    const penalty = vastuPenalty(frame, input);
+    const reserved = reserveOpenStrip(frame.interior, program.rooms, input.openSpacePct ?? 0);
+    const packed = { rest: frame.interior, strip: void 0 };
+    const zoned = input.vastu === "strict" && input.zoneFirst === true;
+    const rand = mulberry32(seed);
+    const valid = [];
+    let sampled = 0;
+    const evaluateOrder = (order, structSeed, chainSeed, split) => {
+      const { leaves, pen } = optimise(buildTree(order, mulberry32(structSeed)), split.rest, mulberry32(chainSeed), penalty, OPTIMISE_STEPS, frame.interior);
+      if (split.strip) leaves.push({ rect: split.strip, open: true });
+      if (pen > 0) return { cost: INFEASIBLE_COST + pen, cand: null, ev: null };
+      const cand = toCandidate(leaves, frame);
+      const ev = evaluate(cand, frame, input, program.rooms);
+      const invalid = ev.violations.length > 0 ? INFEASIBLE_COST : 0;
+      return { cost: invalid + ev.violations.length * 5 + vastuDeficit(ev, input) + oversizeCost(cand, program.rooms), cand, ev };
+    };
+    for (let r = 0; r < restarts; r++) {
+      sampled++;
+      const restartRand = mulberry32(Math.floor(rand() * 2 ** 31));
+      const structSeed = Math.floor(restartRand() * 2 ** 31);
+      const chainSeed = Math.floor(restartRand() * 2 ** 31);
+      let order = zoned && restartRand() < 0.5 ? orderItemsZoned(items, frame, restartRand) : orderItems(items, restartRand);
+      const split = reserved.strip && restartRand() < 0.75 ? reserved : packed;
+      let cur = evaluateOrder(order, structSeed, chainSeed, split);
+      for (let step = 0; step < CHAIN_STEPS && cur.cost > 0; step++) {
+        const next = order.slice();
+        const i = Math.floor(restartRand() * next.length);
+        const j = Math.floor(restartRand() * next.length);
+        [next[i], next[j]] = [next[j], next[i]];
+        const trial = evaluateOrder(next, structSeed, chainSeed + step + 1, split);
+        if (trial.cost <= cur.cost) {
+          order = next;
+          cur = trial;
+        }
+      }
+      if (cur.cand && cur.ev && cur.ev.valid) {
+        valid.push({ cand: cur.cand, ev: cur.ev, seed: structSeed });
+      }
+    }
+    valid.sort((a, b) => b.ev.total - a.ev.total);
+    const shortlist = valid.slice(0, FURNITURE_SHORTLIST).map((v, i) => {
+      const build = (shifts) => assembleLayout(`L${i + 1}`, v.seed, v.cand, v.ev, frame, input, program.rooms, warnings, shifts);
+      const layout = fitDoors(build, [...v.ev.parent.keys()]);
+      const adjusted = v.ev.total - MISSING_FURNITURE_COST * layout.missingFurniture - oversizeCost(v.cand, program.rooms);
+      return { layout, cand: v.cand, adjusted };
+    });
+    shortlist.sort((a, b) => b.adjusted - a.adjusted);
+    const sizeOk = (c) => serviceOversize(c, program.rooms) === 0;
+    const chosen = [];
+    for (const pool of [shortlist.filter((v) => sizeOk(v.cand)), shortlist.filter((v) => !sizeOk(v.cand))]) {
+      for (const v of pool) {
+        if (chosen.length >= count) break;
+        if (chosen.every((p) => difference(p.cand, v.cand) >= MIN_DISTINCT)) chosen.push(v);
+      }
+    }
+    if (chosen.length === 0) {
+      errors.push("No valid layout found for these inputs. Try relaxing Vastu to Moderate, or change room choices.");
+    } else if (chosen.length < count) {
+      warnings.push(`Only ${chosen.length} distinct valid layout${chosen.length === 1 ? "" : "s"} found for these inputs.`);
+    }
+    const layouts = chosen.map((c, i) => ({ ...c.layout, id: `L${i + 1}` }));
+    return { layouts, errors, warnings: unique(warnings), stats: { sampled, valid: valid.length } };
+  }
+  function allocate(rooms, interior) {
+    const interiorArea = interior.w * interior.h;
+    const defTotal = rooms.reduce((s, r) => s + r.defW * r.defH, 0);
+    const k = interiorArea / defTotal;
+    return rooms.map((spec2) => {
+      const lo = spec2.minW * spec2.minH;
+      const hi = (spec2.defW + 2) * (spec2.defH + 2);
+      const weight = Math.min(hi, Math.max(lo, spec2.defW * spec2.defH * k));
+      return { spec: spec2, weight };
+    });
+  }
+  function isLeaf(n) {
+    return "spec" in n;
+  }
+  function buildTree(items, rand) {
+    if (items.length === 1) {
+      const leaf = { spec: items[0].spec };
+      if (rand() < STAGGER_PROBABILITY) {
+        const sides = ["left", "right", "back"];
+        leaf.stagger = {
+          side: sides[Math.floor(rand() * sides.length)],
+          ft: STAGGER_DEPTHS_FT[Math.floor(rand() * STAGGER_DEPTHS_FT.length)]
+        };
+      }
+      return leaf;
+    }
+    const n = items.length;
+    const groups = 2 + (n >= 3 && rand() < 0.5 ? 1 : 0);
+    const cuts = pickCuts(items, groups, rand);
+    const bounds = [0, ...cuts, n];
+    const total = items.reduce((s2, it) => s2 + it.weight, 0);
+    const ratios = [];
+    const children = [];
+    for (let g = 0; g < groups; g++) {
+      const part = items.slice(bounds[g], bounds[g + 1]);
+      children.push(buildTree(part, rand));
+      if (g < groups - 1) ratios.push(part.reduce((s2, it) => s2 + it.weight, 0) / total);
+    }
+    return {
+      ratios,
+      longBias: rand() < 0.85,
+      passage: groups === 2 && n >= 3 && rand() < PASSAGE_PROBABILITY,
+      children
+    };
+  }
+  function realize(node, rect, out, penaltyOf = leafPenalty, envelope) {
+    if (isLeaf(node)) {
+      const staggered = node.stagger && envelope ? applyStagger(rect, node.stagger, envelope) : rect;
+      const cap = capOf(node.spec);
+      const placed = clampKeepingCorner(staggered, cap.w, cap.h);
+      out.push({ rect: placed, spec: node.spec });
+      for (const spare of spareAround(staggered, placed)) out.push({ rect: spare, open: true });
+      return penaltyOf(node.spec, placed);
+    }
+    const alongX = node.axis ? node.axis === "x" : rect.w >= rect.h ? node.longBias : !node.longBias;
+    const span = (alongX ? rect.w : rect.h) - (node.passage ? PASSAGE_FT : 0);
+    const shares = [...node.ratios, 1 - node.ratios.reduce((a, b) => a + b, 0)];
+    let pen = 0;
+    let offset = 0;
+    const last = node.children.length - 1;
+    let used = 0;
+    for (let g = 0; g < node.children.length; g++) {
+      let size = g === last ? span - used : quantise(shares[g] * span);
+      used += size;
+      if (size < MIN_SLICE_FT) {
+        pen += (MIN_SLICE_FT - size) * 10;
+        size = Math.max(size, 0.5);
+      }
+      const sub = alongX ? { x: rect.x + offset, y: rect.y, w: size, h: rect.h } : { x: rect.x, y: rect.y + offset, w: rect.w, h: size };
+      pen += realize(node.children[g], sub, out, penaltyOf, envelope);
+      offset += size;
+      if (node.passage && g === 0) {
+        const pr = alongX ? { x: rect.x + offset, y: rect.y, w: PASSAGE_FT, h: rect.h } : { x: rect.x, y: rect.y + offset, w: rect.w, h: PASSAGE_FT };
+        out.push({ rect: pr });
+        offset += PASSAGE_FT;
+      }
+    }
+    return pen;
+  }
+  function quantise(ft) {
+    return Math.round(ft * 16) / 16;
+  }
+  function applyStagger(rect, stagger, env) {
+    const near = (a, b) => Math.abs(a - b) < 1e-6;
+    const out = { ...rect };
+    if (stagger.side === "left" && near(rect.x, env.x)) {
+      out.x += stagger.ft;
+      out.w -= stagger.ft;
+    } else if (stagger.side === "right" && near(rect.x + rect.w, env.x + env.w)) {
+      out.w -= stagger.ft;
+    } else if (stagger.side === "back" && near(rect.y + rect.h, env.y + env.h)) {
+      out.h -= stagger.ft;
+    } else {
+      return rect;
+    }
+    if (out.w < 1 || out.h < 1) return rect;
+    return { x: quantise(out.x), y: quantise(out.y), w: quantise(out.w), h: quantise(out.h) };
+  }
+  function fitDoors(build, childIds) {
+    let shifts = new Map(childIds.map((id) => [id, -1]));
+    let best = build(shifts);
+    for (let pass = 0; pass < 2; pass++) {
+      for (const id of childIds) {
+        for (const k of [-1, 0, 1]) {
+          if ((shifts.get(id) ?? 0) === k) continue;
+          const trial = new Map(shifts).set(id, k);
+          const layout = build(trial);
+          if (layout.missingFurniture < best.missingFurniture) {
+            best = layout;
+            shifts = trial;
+          }
+        }
+      }
+    }
+    return best;
+  }
+  function oversizeCost(cand, specs) {
+    const byId = new Map(specs.map((x) => [x.id, x]));
+    let total = 0;
+    for (const r of cand.rooms) {
+      const sp = byId.get(r.id);
+      if (!sp) continue;
+      const maxW = sp.defW + MAX_GROWTH_FT;
+      const maxH = sp.defH + MAX_GROWTH_FT;
+      const over = Math.min(
+        Math.max(0, r.rect.w - maxW) + Math.max(0, r.rect.h - maxH),
+        Math.max(0, r.rect.w - maxH) + Math.max(0, r.rect.h - maxW)
+      );
+      total += over * (SERVICE_ROOM_KINDS.has(r.kind) ? 3 : 0.5);
+    }
+    return total;
+  }
+  function serviceOversize(cand, specs) {
+    const byId = new Map(specs.map((x) => [x.id, x]));
+    let total = 0;
+    for (const r of cand.rooms) {
+      const sp = byId.get(r.id);
+      if (!sp || !SERVICE_ROOM_KINDS.has(r.kind)) continue;
+      const maxW = sp.defW + MAX_GROWTH_FT;
+      const maxH = sp.defH + MAX_GROWTH_FT;
+      total += Math.min(
+        Math.max(0, r.rect.w - maxW) + Math.max(0, r.rect.h - maxH),
+        Math.max(0, r.rect.w - maxH) + Math.max(0, r.rect.h - maxW)
+      );
+    }
+    return total;
+  }
+  function vastuDeficit(ev, input) {
+    if (input.vastu !== "strict") return 0;
+    return ev.vastuRules.reduce((sum, r) => sum + Math.max(0, 0.6 - r.score) * 10, 0);
+  }
+  function vastuPenalty(_frame, _input) {
+    return leafPenalty;
+  }
+  function leafPenalty(spec2, rect) {
+    const short = Math.min(rect.w, rect.h);
+    const long = Math.max(rect.w, rect.h);
+    const minShort = Math.min(spec2.minW, spec2.minH);
+    const minLong = Math.max(spec2.minW, spec2.minH);
+    const aspect = long / short;
+    return Math.max(0, minShort - short) * 3 + Math.max(0, minLong - long) * 3 + Math.max(0, aspect - room_defaults_default.maxAspect) * 10;
+  }
+  function collectSplits(node, out = []) {
+    if (!isLeaf(node)) {
+      out.push(node);
+      node.children.forEach((c) => collectSplits(c, out));
+    }
+    return out;
+  }
+  var OPTIMISE_STEPS = 300;
+  var CHAIN_STEPS = 25;
+  var INFEASIBLE_COST = 1e3;
+  var INTERIOR_SPARE_COST = 0.05;
+  function layoutCost(tree, rect, penaltyOf, envelope) {
+    const out = [];
+    const pen = realize(tree, rect, out, penaltyOf, envelope);
+    let spare = 0;
+    for (const l of out) {
+      if (l.open && !touchesEnvelope(l.rect, envelope)) spare += l.rect.w * l.rect.h;
+    }
+    return { pen, cost: pen + spare * INTERIOR_SPARE_COST };
+  }
+  function optimise(tree, rect, rand, penaltyOf = leafPenalty, steps = OPTIMISE_STEPS, envelope = rect) {
+    const splits = collectSplits(tree);
+    let state = layoutCost(tree, rect, penaltyOf, envelope);
+    let bestCost = state.cost;
+    const best = splits.map((n) => n.ratios.slice());
+    for (let step = 0; step < steps && bestCost > 0 && splits.length > 0; step++) {
+      const temperature = 3 * (1 - step / steps) + 0.05;
+      const node = splits[Math.floor(rand() * splits.length)];
+      if (node.ratios.length === 0) continue;
+      const i = Math.floor(rand() * node.ratios.length);
+      const old = node.ratios[i];
+      const scale = 0.02 + 0.15 * (1 - step / steps);
+      node.ratios[i] = Math.min(0.9, Math.max(0.03, old + (rand() + rand() + rand() - 1.5) * scale));
+      if (node.ratios.reduce((a, b) => a + b, 0) > 0.97) {
+        node.ratios[i] = old;
+        continue;
+      }
+      const next = layoutCost(tree, rect, penaltyOf, envelope);
+      if (next.cost <= state.cost || rand() < Math.exp(-(next.cost - state.cost) / temperature)) {
+        state = next;
+        if (state.cost < bestCost) {
+          bestCost = state.cost;
+          splits.forEach((n, k) => best[k] = n.ratios.slice());
+        }
+      } else {
+        node.ratios[i] = old;
+      }
+    }
+    splits.forEach((n, k) => n.ratios = best[k]);
+    const leaves = [];
+    const pen = realize(tree, rect, leaves, penaltyOf, envelope);
+    return { leaves, pen };
+  }
+  function touchesEnvelope(r, env) {
+    const eps = 1e-6;
+    return Math.abs(r.x - env.x) < eps || Math.abs(r.y - env.y) < eps || Math.abs(r.x + r.w - (env.x + env.w)) < eps || Math.abs(r.y + r.h - (env.y + env.h)) < eps;
+  }
+  function pickCuts(items, groups, rand) {
+    const total = items.reduce((s2, it) => s2 + it.weight, 0);
+    const cumulative = [];
+    let acc = 0;
+    for (const it of items) {
+      acc += it.weight / total;
+      cumulative.push(acc);
+    }
+    const cuts = [];
+    let minIndex = 1;
+    for (let g = 1; g < groups; g++) {
+      const target = g / groups + (rand() - 0.5) * 0.24;
+      let best = -1;
+      for (let k = minIndex; k <= items.length - (groups - g); k++) {
+        if (best < 0 || Math.abs(cumulative[k - 1] - target) < Math.abs(cumulative[best - 1] - target)) best = k;
+      }
+      if (best < 0) return [];
+      cuts.push(best);
+      minIndex = best + 1;
+    }
+    return cuts;
+  }
+  function orderItemsZoned(items, frame, rand) {
+    const bundles = bundlesOf(items);
+    const keyOf = (bundle) => {
+      const zones = bundle.flatMap((it) => PREFERRED_ZONES[it.spec.kind] ?? []);
+      if (zones.length === 0) return 0;
+      const v = zones.reduce(
+        (acc, c) => {
+          const [wx, wy] = compassVector(c);
+          return [acc[0] + wx / zones.length, acc[1] + wy / zones.length];
+        },
+        [0, 0]
+      );
+      const lx = v[0] * frame.right[0] + v[1] * frame.right[1];
+      const ly = v[0] * frame.inward[0] + v[1] * frame.inward[1];
+      return lx + ly + (rand() - 0.5) * 0.3;
+    };
+    return bundles.map((b) => ({ b, k: keyOf(b) })).sort((a, b) => a.k - b.k).flatMap((x) => x.b);
+  }
+  function bundlesOf(items) {
+    const bundles = [];
+    for (const it of items) {
+      if (it.spec.kind === "attachedToilet") continue;
+      const att = items.find((x) => x.spec.kind === "attachedToilet" && x.spec.attachedTo === it.spec.id);
+      bundles.push(att ? [it, att] : [it]);
+    }
+    return bundles;
+  }
+  function orderItems(items, rand) {
+    const bundles = [];
+    for (const it of items) {
+      if (it.spec.kind === "attachedToilet") continue;
+      const att = items.find((x) => x.spec.kind === "attachedToilet" && x.spec.attachedTo === it.spec.id);
+      bundles.push(att ? [it, att] : [it]);
+    }
+    const shuffled = shuffle(bundles, rand);
+    const living = shuffled.findIndex((b) => b[0].spec.kind === "living");
+    if (living > 0 && rand() < 0.5) {
+      const [b] = shuffled.splice(living, 1);
+      shuffled.unshift(b);
+    }
+    return shuffled.flat();
+  }
+  function toCandidate(leaves, frame) {
+    let passageNo = 0;
+    const openSpaces = leaves.filter((leaf) => leaf.open).map((leaf) => leaf.rect);
+    const rooms = leaves.filter((leaf) => !leaf.open).map((leaf) => {
+      const rect = leaf.rect;
+      const cx = rect.x + rect.w / 2;
+      const cy = rect.y + rect.h / 2;
+      const base = leaf.spec ? { id: leaf.spec.id, kind: leaf.spec.kind, label: leaf.spec.label, habitable: leaf.spec.habitable, attachedTo: leaf.spec.attachedTo } : { id: `passage-${++passageNo}`, kind: "passage", label: "Passage", habitable: false };
+      return {
+        ...base,
+        rect,
+        area: rect.w * rect.h,
+        exteriorSides: exteriorSides(rect, frame.interior).map((e) => e.side),
+        compass: compassOfPoint(cx, cy, frame)
+      };
+    });
+    return { rooms, openSpaces };
+  }
+  function difference(a, b) {
+    const byId = new Map(b.rooms.map((r) => [r.id, r.rect]));
+    let moved = 0;
+    for (const r of a.rooms) {
+      const o = byId.get(r.id);
+      if (!o) {
+        moved++;
+        continue;
+      }
+      if (Math.abs(o.x - r.rect.x) > 0.5 || Math.abs(o.y - r.rect.y) > 0.5 || Math.abs(o.w - r.rect.w) > 0.5 || Math.abs(o.h - r.rect.h) > 0.5) moved++;
+    }
+    return moved / a.rooms.length;
+  }
+  function assembleLayout(id, seed, cand, ev, frame, input, specs, warnings, doorShifts = /* @__PURE__ */ new Map()) {
+    const specById = new Map(specs.map((s) => [s.id, s]));
+    const rooms = cand.rooms;
+    const widthOf = (r) => doorWidthOf(r, specById);
+    const openings = [];
+    const living = rooms.find((r) => r.kind === "living");
+    const roadSides = input.roadSide === "corner" ? ["front", input.cornerSide] : ["front"];
+    const roadCandidates = exteriorSides(living.rect, frame.interior).filter((e) => roadSides.includes(e.side));
+    const roadSide = roadCandidates.sort((a, b) => b.length - a.length)[0];
+    const layoutWarnings = [...warnings];
+    let parking = [];
+    let mainDoorCenter = null;
+    for (const end of ["left", "right"]) {
+      parking = parkingFor(frame, input, end, layoutWarnings);
+      mainDoorCenter = null;
+      if (!roadSide) break;
+      const seg = sideSegment(living.rect, roadSide.side);
+      const blockedByParking = roadSide.side === "front" ? parking.map((p) => [p.rect.x - 1, p.rect.x + p.rect.w + 1]) : [];
+      const at = placeOnSide(seg, MAIN_DOOR_FT2, blockedByParking);
+      if (at !== null) {
+        mainDoorCenter = { side: roadSide.side, at };
+        break;
+      }
+    }
+    if (roadSide) {
+      if (mainDoorCenter) {
+        const seg = sideSegment(living.rect, mainDoorCenter.side);
+        openings.push({ kind: "mainDoor", width: MAIN_DOOR_FT2, ...centredSegment(seg, mainDoorCenter.at, MAIN_DOOR_FT2), roomId: living.id });
+      } else {
+        layoutWarnings.push("Main door cannot be placed clear of the parking on this frontage.");
+      }
+    }
+    for (const [childId, parentId] of ev.parent) {
+      const child = rooms.find((r) => r.id === childId);
+      const parent = rooms.find((r) => r.id === parentId);
+      const edge = sharedEdge(child.rect, parent.rect);
+      if (!edge) continue;
+      const width = Math.min(widthOf(child), widthOf(parent));
+      const open = child.kind === "kitchen" && input.rooms.kitchenOpen || parent.kind === "kitchen" && input.rooms.kitchenOpen;
+      const w = open ? OPEN_KITCHEN_FT : width;
+      const lo = edge.axis === "v" ? edge.y1 : edge.x1;
+      const hi = edge.axis === "v" ? edge.y2 : edge.x2;
+      const mid = (lo + hi) / 2;
+      const slack = Math.max(0, (hi - lo - w) / 2 - 0.25);
+      const at = Math.min(hi - w / 2 - 0.25, Math.max(lo + w / 2 + 0.25, mid + (doorShifts.get(child.id) ?? 0) * slack));
+      const seg = edgeSegment(edge);
+      openings.push({
+        kind: open ? "opening" : "door",
+        width: w,
+        ...centredSegment(seg, at, w),
+        roomId: child.id,
+        otherRoomId: parent.id
+      });
+    }
+    for (const r of rooms) {
+      if (r.kind === "passage" || r.kind === "stair" || r.kind === "puja" || r.kind === "store") continue;
+      const habitable = specById.get(r.id)?.habitable ?? false;
+      const width = habitable ? WINDOW_FT2 : VENT_FT2;
+      if (!habitable && !isToilet(r.kind) && r.kind !== "utility") continue;
+      const kind = habitable ? "window" : "ventilator";
+      for (const ext of exteriorSides(r.rect, frame.interior)) {
+        const seg = sideSegment(r.rect, ext.side);
+        const blocked = mainDoorCenter && r.kind === "living" && mainDoorCenter.side === ext.side ? [[mainDoorCenter.at - MAIN_DOOR_FT2 / 2 - 1, mainDoorCenter.at + MAIN_DOOR_FT2 / 2 + 1]] : [];
+        const at = placeOnSide(seg, width, blocked);
+        if (at === null) continue;
+        openings.push({ kind, width, ...centredSegment(seg, at, width), roomId: r.id });
+      }
+    }
+    if (input.vastu !== "none") layoutWarnings.push(...ev.vastuFlags);
+    const furniture = placeFurniture(rooms, openings, frame, input);
+    layoutWarnings.push(...furniture.warnings);
+    return {
+      id,
+      seed,
+      frame,
+      rooms,
+      openSpaces: cand.openSpaces ?? [],
+      openings,
+      parking,
+      furniture: furniture.items,
+      missingFurniture: furniture.missing,
+      scorecard: ev.scorecard,
+      vastuRules: ev.vastuRules,
+      warnings: unique(layoutWarnings)
+    };
+  }
+  function sideSegment(r, side) {
+    switch (side) {
+      case "front":
+        return { a: { x: r.x, y: r.y }, b: { x: r.x + r.w, y: r.y } };
+      case "back":
+        return { a: { x: r.x, y: r.y + r.h }, b: { x: r.x + r.w, y: r.y + r.h } };
+      case "left":
+        return { a: { x: r.x, y: r.y }, b: { x: r.x, y: r.y + r.h } };
+      case "right":
+        return { a: { x: r.x + r.w, y: r.y }, b: { x: r.x + r.w, y: r.y + r.h } };
+    }
+  }
+  function edgeSegment(e) {
+    return e.axis === "v" ? { a: { x: e.x, y: e.y1 }, b: { x: e.x, y: e.y2 } } : { a: { x: e.x1, y: e.y }, b: { x: e.x2, y: e.y } };
+  }
+  function centredSegment(seg, at, width) {
+    const vertical = seg.a.x === seg.b.x;
+    const lo = at - width / 2;
+    const hi = at + width / 2;
+    return vertical ? { a: { x: seg.a.x, y: lo }, b: { x: seg.a.x, y: hi } } : { a: { x: lo, y: seg.a.y }, b: { x: hi, y: seg.a.y } };
+  }
+  function placeOnSide(seg, width, blocked = []) {
+    const vertical = seg.a.x === seg.b.x;
+    const start = vertical ? Math.min(seg.a.y, seg.b.y) : Math.min(seg.a.x, seg.b.x);
+    const end = vertical ? Math.max(seg.a.y, seg.b.y) : Math.max(seg.a.x, seg.b.x);
+    let free = [[start, end]];
+    for (const [lo, hi] of blocked) {
+      free = free.flatMap(([a, b]) => {
+        const parts = [];
+        if (lo > a) parts.push([a, Math.min(b, lo)]);
+        if (hi < b) parts.push([Math.max(a, hi), b]);
+        return parts.filter(([x, y]) => y > x);
+      });
+    }
+    let best = null;
+    for (const f of free) {
+      if (f[1] - f[0] >= width + 1 && (!best || f[1] - f[0] > best[1] - best[0])) best = f;
+    }
+    return best ? (best[0] + best[1]) / 2 : null;
+  }
+  function layoutSignature(l) {
+    return l.rooms.map((r) => `${r.id}:${r.rect.x},${r.rect.y},${r.rect.w},${r.rect.h}`).join("|");
+  }
+  function unique(xs) {
+    return [...new Set(xs)];
+  }
+  function capOf(r) {
+    const toilet = r.kind === "attachedToilet" || r.kind === "commonToilet";
+    return toilet ? { w: r.defW + 1, h: r.defH + 1 } : { w: r.defW * 1.15, h: r.defH * 1.15 };
+  }
+  function reserveOpenStrip(interior, rooms, openSpacePct) {
+    const area = interior.w * interior.h;
+    const roomsDefault = rooms.reduce((sum, r) => r.kind === "passage" ? sum : sum + r.defW * r.defH, 0);
+    const want = roomsDefault * ROOM_FILL_TARGET + PASSAGE_FT * PASSAGE_ALLOWANCE_FT;
+    const spare = Math.max(area - want, area * openSpacePct / 100);
+    const tallest = Math.max(0, ...rooms.map((r) => r.defH));
+    const depth = Math.min(interior.h - tallest, Math.floor(spare / interior.w * 2) / 2);
+    if (depth < MIN_OPEN_FT) return { rest: interior };
+    return {
+      rest: { x: interior.x, y: interior.y, w: interior.w, h: interior.h - depth },
+      strip: { x: interior.x, y: interior.y + interior.h - depth, w: interior.w, h: depth }
+    };
+  }
+  function spareAround(outer, inner) {
+    const spare = [];
+    if (outer.w - inner.w > 0.5) spare.push({ x: inner.x + inner.w, y: outer.y, w: outer.w - inner.w, h: outer.h });
+    if (outer.h - inner.h > 0.5) spare.push({ x: outer.x, y: inner.y + inner.h, w: inner.w, h: outer.h - inner.h });
+    return spare;
+  }
+  function clampKeepingCorner(r, w, h) {
+    const longCap = Math.max(w, h), shortCap = Math.min(w, h);
+    const wide = r.w >= r.h;
+    return { x: r.x, y: r.y, w: Math.min(r.w, wide ? longCap : shortCap), h: Math.min(r.h, wide ? shortCap : longCap) };
+  }
+
+  // engine/presets.ts
+  function defaultInput() {
+    return {
+      width: 30,
+      depth: 40,
+      facing: "N",
+      roadSide: "front",
+      cornerSide: "right",
+      openSpacePct: 5,
+      floors: 1,
+      parking: { cars: 0, twoWheelers: 0 },
+      staircase: "internal",
+      bhk: 2,
+      attachedToilets: [true, false, false, false],
+      rooms: {
+        dining: true,
+        kitchenOpen: false,
+        puja: false,
+        study: false,
+        guestBedroom: false,
+        store: false,
+        utility: false,
+        balcony: false,
+        commonToilet: true
+      },
+      elderlyGroundBedroom: false,
+      vastu: "moderate",
+      priority: "size"
+    };
+  }
+  var ACCEPTANCE_CASES = [
+    {
+      name: "1. 30x40 east, 2BHK, Vastu moderate, 1 car",
+      input: {
+        ...defaultInput(),
+        width: 30,
+        depth: 40,
+        facing: "E",
+        bhk: 2,
+        vastu: "moderate",
+        parking: { cars: 1, twoWheelers: 0 }
+      }
+    },
+    {
+      name: "2. 30x50 north, 3BHK, puja, elderly ground-floor bedroom",
+      input: {
+        ...defaultInput(),
+        width: 30,
+        depth: 50,
+        facing: "N",
+        bhk: 3,
+        attachedToilets: [true, false, false, false],
+        rooms: { ...defaultInput().rooms, puja: true },
+        elderlyGroundBedroom: true,
+        vastu: "moderate"
+      }
+    },
+    {
+      name: "3. 20x45 west, 2BHK, no Vastu, 2 two-wheelers",
+      input: {
+        ...defaultInput(),
+        width: 20,
+        depth: 45,
+        facing: "W",
+        bhk: 2,
+        vastu: "none",
+        parking: { cars: 0, twoWheelers: 2 }
+      }
+    },
+    {
+      name: "4. 40x60 corner south, 4BHK + study + guest, strict Vastu",
+      input: {
+        ...defaultInput(),
+        width: 40,
+        depth: 60,
+        facing: "S",
+        roadSide: "corner",
+        cornerSide: "right",
+        bhk: 4,
+        attachedToilets: [true, false, false, false],
+        rooms: { ...defaultInput().rooms, study: true, guestBedroom: true },
+        vastu: "strict",
+        parking: { cars: 1, twoWheelers: 2 }
+      }
+    }
+  ];
+
+  // render/geometry.ts
+  var WALL_EXTERNAL_FT2 = 0.75;
+  var WALL_INTERNAL_FT = 0.375;
+  var ARC_SEGMENTS = 18;
+  function rectPoints(r) {
+    return [{ x: r.x, y: r.y }, { x: r.x + r.w, y: r.y }, { x: r.x + r.w, y: r.y + r.h }, { x: r.x, y: r.y + r.h }];
+  }
+  function wallStrip(side, r, t) {
+    const h = t / 2;
+    switch (side) {
+      case "front":
+        return [{ x: r.x - h, y: r.y - h }, { x: r.x + r.w + h, y: r.y - h }, { x: r.x + r.w + h, y: r.y + h }, { x: r.x - h, y: r.y + h }];
+      case "back":
+        return [{ x: r.x - h, y: r.y + r.h - h }, { x: r.x + r.w + h, y: r.y + r.h - h }, { x: r.x + r.w + h, y: r.y + r.h + h }, { x: r.x - h, y: r.y + r.h + h }];
+      case "left":
+        return [{ x: r.x - h, y: r.y - h }, { x: r.x + h, y: r.y - h }, { x: r.x + h, y: r.y + r.h + h }, { x: r.x - h, y: r.y + r.h + h }];
+      case "right":
+        return [{ x: r.x + r.w - h, y: r.y - h }, { x: r.x + r.w + h, y: r.y - h }, { x: r.x + r.w + h, y: r.y + r.h + h }, { x: r.x + r.w - h, y: r.y + r.h + h }];
+    }
+  }
+  function roomWalls(r) {
+    const sides = ["front", "back", "left", "right"];
+    return sides.map((side) => ({ side, t: r.exteriorSides.includes(side) ? WALL_EXTERNAL_FT2 : WALL_INTERNAL_FT }));
+  }
+  function openingGeometry(op, layout) {
+    const a = op.a;
+    const b = op.b;
+    const len = Math.hypot(b.x - a.x, b.y - a.y);
+    const d = { x: (b.x - a.x) / len, y: (b.y - a.y) / len };
+    const n = { x: -d.y, y: d.x };
+    const mid = { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 };
+    const outer = op.kind === "mainDoor" || op.kind === "window" || op.kind === "ventilator";
+    const h = (outer ? WALL_EXTERNAL_FT2 : WALL_INTERNAL_FT) / 2;
+    const gap = [
+      { x: a.x + n.x * h, y: a.y + n.y * h },
+      { x: b.x + n.x * h, y: b.y + n.y * h },
+      { x: b.x - n.x * h, y: b.y - n.y * h },
+      { x: a.x - n.x * h, y: a.y - n.y * h }
+    ];
+    const out = { gap, glazing: [], leaf: null, arc: null };
+    if (op.kind === "window" || op.kind === "ventilator") {
+      for (const k of [-0.33, 0, 0.33]) {
+        const off = { x: n.x * h * k * 2, y: n.y * h * k * 2 };
+        out.glazing.push([{ x: a.x + off.x, y: a.y + off.y }, { x: b.x + off.x, y: b.y + off.y }]);
+      }
+      return out;
+    }
+    if (op.kind === "opening") return out;
+    const room = layout.rooms.find((r) => r.id === op.roomId);
+    const roomCentre = room ? { x: room.rect.x + room.rect.w / 2, y: room.rect.y + room.rect.h / 2 } : mid;
+    const side = (roomCentre.x - mid.x) * n.x + (roomCentre.y - mid.y) * n.y >= 0 ? 1 : -1;
+    const leafDir = { x: n.x * side, y: n.y * side };
+    out.leaf = [a, { x: a.x + leafDir.x * op.width, y: a.y + leafDir.y * op.width }];
+    const start = Math.atan2(b.y - a.y, b.x - a.x);
+    const end = Math.atan2(leafDir.y, leafDir.x);
+    let sweep = end - start;
+    while (sweep > Math.PI) sweep -= 2 * Math.PI;
+    while (sweep < -Math.PI) sweep += 2 * Math.PI;
+    const arc = [];
+    for (let i = 0; i <= ARC_SEGMENTS; i++) {
+      const ang = start + sweep * i / ARC_SEGMENTS;
+      arc.push({ x: a.x + Math.cos(ang) * op.width, y: a.y + Math.sin(ang) * op.width });
+    }
+    out.arc = arc;
+    return out;
+  }
+
+  // render/scene.ts
+  var DEFAULT_PLAN_OPTIONS = {
+    unit: "ftin",
+    showSetbacks: true,
+    showDimensions: true,
+    showFurniture: true,
+    labels: { car: "Car", twoWheeler: "2W", north: "N" },
+    scale: 12
+  };
+  var COLORS = {
+    wall: "#3b3f45",
+    wallGap: "#ffffff",
+    plot: "#8a8f98",
+    setback: "#c9584f",
+    window: "#3f7fc4",
+    door: "#b3262e",
+    dimension: "#1f4e8c",
+    text: "#1d2026",
+    parking: "#777c85",
+    furniture: "#7d838c",
+    selected: "#d08a00",
+    issue: "#c0392b",
+    parkingFill: "#eceef1"
+  };
+  var OPEN_FILL = "#f4f8ef";
+  var ROOM_FILL = {
+    living: "#fdf3d0",
+    dining: "#fde8d0",
+    kitchen: "#e6f5d8",
+    master: "#d9e8fb",
+    bedroom: "#dfeefa",
+    guest: "#dfeefa",
+    attachedToilet: "#e8e2f5",
+    commonToilet: "#e8e2f5",
+    puja: "#fbe0ea",
+    study: "#eef0d8",
+    store: "#eeeeee",
+    utility: "#e3f1f1",
+    stair: "#f2f2f2",
+    passage: "#ffffff"
+  };
+  function makeMapper(frame, scale, margin) {
+    const corners = [
+      { x: 0, y: 0 },
+      { x: frame.width, y: 0 },
+      { x: frame.width, y: frame.depth },
+      { x: 0, y: frame.depth }
+    ].map((p) => localToWorld(p.x, p.y, frame));
+    const minX = Math.min(...corners.map((c) => c.x));
+    const maxY = Math.max(...corners.map((c) => c.y));
+    const local = (p) => {
+      const w = localToWorld(p.x, p.y, frame);
+      return { x: (w.x - minX + margin) * scale, y: (maxY - w.y + margin) * scale };
+    };
+    const extent = {
+      width: (Math.max(...corners.map((c) => c.x)) - minX + 2 * margin) * scale,
+      height: (maxY - Math.min(...corners.map((c) => c.y)) + 2 * margin) * scale
+    };
+    return { local, extent, minX, maxY };
+  }
+  function ftin(ft, unit) {
+    return formatLength(ft, unit);
+  }
+  function labelLines(label) {
+    const words = label.split(" ");
+    if (words.length === 1) return [label];
+    const mid = Math.ceil(words.length / 2);
+    return [words.slice(0, mid).join(" "), words.slice(mid).join(" ")];
+  }
+  function planScene(layout, opts = {}) {
+    const o = { ...DEFAULT_PLAN_OPTIONS, ...opts };
+    const frame = layout.frame;
+    const margin = 7;
+    const { local, extent } = makeMapper(frame, o.scale, margin);
+    const items = [];
+    const poly = (pts2, fill, layer, extra = {}) => items.push({ kind: "polygon", points: pts2.map(local), fill, layer, ...extra });
+    const line = (pts2, stroke, strokeWidth, layer, dash) => items.push({ kind: "polyline", points: pts2.map(local), stroke, strokeWidth, layer, dash });
+    const text = (p, t, size, fill, layer, anchor = "middle", weight, dyPx = 0) => {
+      const q = local(p);
+      items.push({ kind: "text", x: q.x, y: q.y + dyPx, text: t, size, fill, anchor, layer, weight });
+    };
+    poly(rectPoints({ x: 0, y: 0, w: frame.width, h: frame.depth }), "none", "plot", { stroke: COLORS.plot, strokeWidth: 1, dash: "6 4" });
+    if (o.showSetbacks) {
+      poly(rectPoints(frame.buildable), "none", "plot", { stroke: COLORS.setback, strokeWidth: 1, dash: "4 3" });
+    }
+    for (const r of layout.rooms) {
+      poly(rectPoints(r.rect), ROOM_FILL[r.kind] ?? "#ffffff", "rooms");
+    }
+    for (const open of layout.openSpaces) {
+      poly(rectPoints(open), OPEN_FILL, "rooms", { stroke: COLORS.dimension, strokeWidth: 0.6, dash: "3 3" });
+    }
+    for (const p of layout.parking) {
+      poly(rectPoints(p.rect), COLORS.parkingFill, "parking", { stroke: COLORS.parking, strokeWidth: 1 });
+      const c = { x: p.rect.x + p.rect.w / 2, y: p.rect.y + p.rect.h / 2 };
+      text(c, p.kind === "car" ? o.labels.car : o.labels.twoWheeler, 9, COLORS.text, "parking");
+    }
+    if (o.showFurniture) {
+      for (const f of layout.furniture) {
+        poly(rectPoints(f.rect), "none", "furniture", {
+          stroke: COLORS.furniture,
+          strokeWidth: 0.9,
+          dash: f.assumed ? "2 2" : void 0
+        });
+      }
+    }
+    for (const r of layout.rooms) {
+      for (const w of roomWalls(r)) {
+        poly(wallStrip(w.side, r.rect, w.t), COLORS.wall, "walls");
+      }
+    }
+    for (const op of layout.openings) drawOpening(op, layout, local, items);
+    for (const open of layout.openSpaces) {
+      const c = { x: open.x + open.w / 2, y: open.y + open.h / 2 };
+      text(c, "Open", 10, COLORS.dimension, "labels", "middle", void 0, 0);
+    }
+    for (const r of layout.rooms) {
+      if (r.kind === "passage") continue;
+      const c = { x: r.rect.x + r.rect.w / 2, y: r.rect.y + r.rect.h / 2 };
+      const lines = labelLines(o.roomLabels?.[r.kind] ?? r.label);
+      const lineGap = 11;
+      const firstDy = -((lines.length - 1) * lineGap) / 2;
+      lines.forEach((t, i) => text(c, t, 10, COLORS.text, "labels", "middle", "bold", firstDy + i * lineGap));
+      if (o.showDimensions) {
+        const dims = `${ftin(r.rect.w, o.unit)} x ${ftin(r.rect.h, o.unit)}`;
+        text(c, dims, 8, COLORS.dimension, "dimensions", "middle", void 0, firstDy + lines.length * lineGap + 2);
+      }
+    }
+    if (o.showDimensions) {
+      const d = 3.2;
+      line([{ x: 0, y: -d }, { x: frame.width, y: -d }], COLORS.dimension, 1, "dimensions");
+      text({ x: frame.width / 2, y: -d - 0.6 }, ftin(frame.width, o.unit), 10, COLORS.dimension, "dimensions", "middle", "bold");
+      line([{ x: frame.width + d, y: 0 }, { x: frame.width + d, y: frame.depth }], COLORS.dimension, 1, "dimensions");
+      text({ x: frame.width + d + 0.6, y: frame.depth / 2 }, ftin(frame.depth, o.unit), 10, COLORS.dimension, "dimensions", "start", "bold");
+    }
+    for (const r of layout.rooms) {
+      if (r.id === o.selectedRoomId) poly(rectPoints(r.rect), "none", "labels", { stroke: COLORS.selected, strokeWidth: 3 });
+      if (o.issueRoomIds?.includes(r.id)) poly(rectPoints(r.rect), "none", "labels", { stroke: COLORS.issue, strokeWidth: 3, dash: "6 3" });
+    }
+    const na = local({ x: frame.width + 9, y: frame.depth - 2 });
+    const naBase = local({ x: frame.width + 9, y: frame.depth - 7 });
+    items.push({ kind: "polyline", points: [naBase, na], stroke: "#000", strokeWidth: 2, layer: "north" });
+    items.push({ kind: "polygon", points: [na, { x: na.x - 5, y: na.y + 12 }, { x: na.x + 5, y: na.y + 12 }], fill: "#000", layer: "north" });
+    items.push({ kind: "text", x: na.x, y: na.y - 6, text: o.labels.north, size: 14, fill: "#000", anchor: "middle", weight: "bold", layer: "north" });
+    return { width: extent.width, height: extent.height, items };
+  }
+  function drawOpening(op, layout, local, items) {
+    const g = openingGeometry(op, layout);
+    items.push({ kind: "polygon", points: g.gap.map(local), fill: COLORS.wallGap, layer: "openings" });
+    for (const line of g.glazing) {
+      items.push({ kind: "polyline", points: line.map(local), stroke: COLORS.window, strokeWidth: 1.2, layer: "openings" });
+    }
+    if (g.leaf) items.push({ kind: "polyline", points: g.leaf.map(local), stroke: COLORS.door, strokeWidth: 1.4, layer: "openings" });
+    if (g.arc) items.push({ kind: "polyline", points: g.arc.map(local), stroke: COLORS.door, strokeWidth: 0.8, dash: "3 2", layer: "openings" });
+  }
+
+  // render/svg.ts
+  var esc = (s) => s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+  var pts = (p) => p.map((q) => `${q.x.toFixed(2)},${q.y.toFixed(2)}`).join(" ");
+  function itemToSvg(it) {
+    switch (it.kind) {
+      case "polygon": {
+        const stroke = it.stroke ? ` stroke="${it.stroke}" stroke-width="${it.strokeWidth ?? 1}"` : "";
+        const dash = it.dash ? ` stroke-dasharray="${it.dash}"` : "";
+        return `<polygon points="${pts(it.points)}" fill="${it.fill}"${stroke}${dash} data-layer="${it.layer}"/>`;
+      }
+      case "polyline": {
+        const dash = it.dash ? ` stroke-dasharray="${it.dash}"` : "";
+        return `<polyline points="${pts(it.points)}" fill="none" stroke="${it.stroke}" stroke-width="${it.strokeWidth}" stroke-linecap="round"${dash} data-layer="${it.layer}"/>`;
+      }
+      case "text": {
+        const weight = it.weight === "bold" ? ' font-weight="700"' : "";
+        return `<text x="${it.x.toFixed(2)}" y="${it.y.toFixed(2)}" font-size="${it.size}" fill="${it.fill}" text-anchor="${it.anchor}" font-family="Roboto, 'Noto Sans', 'Noto Sans Devanagari', Arial, sans-serif"${weight} data-layer="${it.layer}">${esc(it.text)}</text>`;
+      }
+    }
+  }
+  function sceneToSvg(scene) {
+    const body = scene.items.map(itemToSvg).join("\n");
+    return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${scene.width.toFixed(2)} ${scene.height.toFixed(2)}" width="100%" style="background:#ffffff">
+${body}
+</svg>
+`;
+  }
+  return __toCommonJS(entry_planner_exports);
+})();
+</script>
+<script>
+(function () {
+  var GP = window.GP;
+  var $ = function (id) { return document.getElementById(id); };
+  var cfg = GP.roomDefaults.rooms;
+  var VAR = GP.roomDefaults.sizeVariation || { minFactor: 0.95, maxFactor: 1.15 };
+  var defaults = GP.defaultInput();
+
+  // Room rows. `flag` is the programme switch the row controls; rows with no flag are always in the plan.
+  var ROOMS = [
+    { key: 'living', label: 'Living', mandatory: true },
+    { key: 'master', label: 'Master bedroom', mandatory: true },
+    { key: 'kitchen', label: 'Kitchen', mandatory: true },
+    { key: 'dining', label: 'Dining', flag: 'dining' },
+    { key: 'bedroom', label: 'Bedroom', needsBhk: 2 },
+    { key: 'attachedToilet', label: 'Attached toilet', mandatory: true },
+    { key: 'commonToilet', label: 'Common toilet', flag: 'commonToilet' },
+    { key: 'guest', label: 'Guest bedroom', flag: 'guestBedroom' },
+    { key: 'study', label: 'Study', flag: 'study' },
+    { key: 'puja', label: 'Puja', flag: 'puja' },
+    { key: 'store', label: 'Store', flag: 'store' },
+    { key: 'utility', label: 'Utility', flag: 'utility' },
+    { key: 'stair', label: 'Staircase', needsStair: true }
+  ];
+  // Optional rooms, dropped in this order when the programme does not fit the buildable area.
+  var DROP_ORDER = ['utility', 'store', 'puja', 'study', 'guest', 'commonToilet'];
+
+  function setFromInputs(input) {
+    SETBACK_SIDES.forEach(function (side) {
+      $('sb-' + side).value = input.setbacks && input.setbacks[side] !== undefined ? input.setbacks[side] : '';
+    });
+    $('width').value = input.width; $('depth').value = input.depth; $('facing').value = input.facing;
+    $('bhk').value = String(input.bhk); $('vastu').value = input.vastu;
+    $('cars').value = String(input.parking.cars); $('wheelers').value = String(input.parking.twoWheelers);
+    $('floors').value = String(input.floors); $('stair').value = input.staircase;
+  }
+
+  var SETBACK_SIDES = ['front', 'rear', 'left', 'right'];
+
+  // Setback overrides in feet. A typed value always wins. A blank box is 0 in Zero mode,
+  // or the value from the bye-law table in Bye-law table mode.
+  function readSetbacks() {
+    var useTable = $('sb-mode').value === 'table';
+    var out = {};
+    SETBACK_SIDES.forEach(function (side) {
+      var v = $('sb-' + side).value;
+      if (v !== '' && Number(v) >= 0) out[side] = Number(v);
+      else if (!useTable) out[side] = 0;
+    });
+    return out;
+  }
+
+  // Shows the setback each empty box will use: the bye-law table, or 0 in Zero mode.
+  function showSetbackHints() {
+    var useTable = $('sb-mode').value === 'table';
+    var table = GP.buildFrame(Object.assign({}, baseInput(), { setbacks: undefined })).setbacks;
+    SETBACK_SIDES.forEach(function (side) { $('sb-' + side).placeholder = useTable ? String(table[side]) : '0'; });
+  }
+
+  // Input from the plot and programme controls only.
+  function baseInput() {
+    var bhk = Number($('bhk').value);
+    return Object.assign({}, defaults, {
+      width: Number($('width').value), depth: Number($('depth').value), facing: $('facing').value,
+      setbacks: readSetbacks(),
+      bhk: bhk, vastu: $('vastu').value,
+      floors: Number($('floors').value) === 2 ? 2 : 1, staircase: $('stair').value,
+      parking: { cars: Number($('cars').value), twoWheelers: Number($('wheelers').value) },
+      // One attached toilet, for the master bedroom, matching the Room sizes table.
+      attachedToilets: defaults.attachedToilets.slice()
+    });
+  }
+
+  function readSizes() {
+    var out = {};
+    ROOMS.forEach(function (r) {
+      if (!r.mandatory && !$('use-' + r.key).checked) return;
+      var w = Number($('rs-' + r.key + '-defW').value), h = Number($('rs-' + r.key + '-defH').value);
+      if (w > 0 && h > 0) out[r.key] = { defW: w, defH: h };
+    });
+    return out;
+  }
+
+  // Full engine input: plot and programme, the room switches, and the sizes in the table.
+  function readInput() {
+    var input = baseInput();
+    var rooms = Object.assign({}, defaults.rooms);
+    ROOMS.forEach(function (r) { if (r.flag) rooms[r.flag] = $('use-' + r.key).checked; });
+    input.rooms = rooms;
+    input.roomSizes = readSizes();
+    return input;
+  }
+
+  function addText(parent, tag, text, cls) {
+    var el = document.createElement(tag);
+    el.textContent = text;
+    if (cls) el.className = cls;
+    parent.appendChild(el);
+    return el;
+  }
+
+  function buildSizeRows() {
+    var body = $('sizes');
+    ROOMS.forEach(function (r) {
+      var tr = document.createElement('tr');
+      var useTd = document.createElement('td');
+      var box = document.createElement('input');
+      box.type = 'checkbox';
+      box.id = 'use-' + r.key;
+      box.setAttribute('aria-label', 'Include ' + r.label);
+      box.addEventListener('change', function () {
+        if (r.mandatory && !box.checked) $('fill-note').textContent = r.label + ' is a must-have space. It stays in the plan.';
+      });
+      if (r.mandatory) { box.checked = true; tr.classList.add('must'); }
+      useTd.appendChild(box);
+      tr.appendChild(useTd);
+      addText(tr, 'td', r.label);
+      ['defW', 'defH'].forEach(function (field) {
+        var td = document.createElement('td');
+        var input = document.createElement('input');
+        input.type = 'number';
+        input.min = '1';
+        input.step = '0.5';
+        input.id = 'rs-' + r.key + '-' + field;
+        input.setAttribute('aria-label', r.label + (field === 'defW' ? ' width' : ' depth'));
+        td.appendChild(input);
+        tr.appendChild(td);
+      });
+      var areaTd = document.createElement('td');
+      areaTd.id = 'area-' + r.key;
+      tr.appendChild(areaTd);
+      body.appendChild(tr);
+    });
+  }
+
+  // Fills the room table from the plot: picks the rooms that fit, then sizes them to use the buildable area.
+  // Smallest size the engine accepts: toilets 1 ft under their own size, other rooms the config minimum.
+  var TOILET_KEYS = { attachedToilet: true, commonToilet: true };
+  function minOf(key, defW, defH) {
+    if (TOILET_KEYS[key]) return { w: defW - 1, h: defH - 1 };
+    return { w: cfg[key].minW, h: cfg[key].minH };
+  }
+
+  function autoFill() {
+    var input = baseInput();
+    var frame = GP.buildFrame(input);
+    var buildable = frame.buildable.w * frame.buildable.h;
+    var target = buildable * Math.min(0.92, 1 - (input.openSpacePct || 0) / 100);
+    var include = {};
+    ROOMS.forEach(function (r) {
+      if (r.mandatory) include[r.key] = true;
+      else if (r.needsBhk) include[r.key] = input.bhk >= r.needsBhk;
+      else if (r.needsStair) include[r.key] = input.floors === 2 && input.staircase === 'internal';
+      else include[r.key] = !!defaults.rooms[r.flag];
+    });
+    // Smallest programme area: every included room at its engine minimum.
+    var minArea = function () {
+      return ROOMS.reduce(function (sum, r) {
+        if (!include[r.key]) return sum;
+        var m = minOf(r.key, cfg[r.key].defW, cfg[r.key].defH);
+        return sum + m.w * m.h;
+      }, 0);
+    };
+    var dropped = [];
+    var i = 0;
+    // Drop optional rooms until the smallest programme fits the target.
+    while (minArea() > target && i < DROP_ORDER.length) {
+      if (include[DROP_ORDER[i]]) { include[DROP_ORDER[i]] = false; dropped.push(DROP_ORDER[i]); }
+      i++;
+    }
+    // Each room at scale × default, never below its engine minimum.
+    var dims = function (key, scale) {
+      var w = Math.round(cfg[key].defW * scale * 2) / 2;
+      var h = Math.round(cfg[key].defH * scale * 2) / 2;
+      var m = minOf(key, w, h);
+      return { w: Math.max(w, m.w), h: Math.max(h, m.h) };
+    };
+    var areaAt = function (scale) {
+      return ROOMS.reduce(function (sum, r) {
+        if (!include[r.key]) return sum;
+        var d = dims(r.key, scale);
+        return sum + d.w * d.h;
+      }, 0);
+    };
+    var defaultArea = areaAt(1);
+    var scale = Math.min(VAR.maxFactor, Math.sqrt(target / defaultArea));
+    var used = areaAt(scale);
+    var minimum = minArea();
+    var note = minimum > buildable
+      ? 'Does not fit even after leaving optional rooms out.'
+      : used > target
+        ? 'Fits only at the smallest sizes, which leaves little open space.'
+        : 'Sized to about ' + Math.round(used / buildable * 100) + '% of the buildable area.';
+    if (dropped.length) note += ' Left out to fit: ' + dropped.join(', ') + '.';
+    ROOMS.forEach(function (r) {
+      $('use-' + r.key).checked = !!include[r.key];
+      var w = $('rs-' + r.key + '-defW'), h = $('rs-' + r.key + '-defH');
+      if (include[r.key]) {
+        var d = dims(r.key, scale);
+        w.value = d.w;
+        h.value = d.h;
+      } else {
+        w.value = ''; h.value = '';
+      }
+      w.disabled = h.disabled = !include[r.key];
+      $('use-' + r.key).disabled = false;
+    });
+    $('fill-note').textContent = note;
+  }
+
+  // Area of each room in the table (width x depth, included rooms only) and the total at the bottom.
+  function updateAreas() {
+    var total = 0;
+    ROOMS.forEach(function (r) {
+      var w = Number($('rs-' + r.key + '-defW').value), h = Number($('rs-' + r.key + '-defH').value);
+      var area = $('use-' + r.key).checked && w > 0 && h > 0 ? w * h : 0;
+      total += area;
+      $('area-' + r.key).textContent = area ? String(Math.round(area)) : '–';
+    });
+    $('sizes-total').textContent = Math.round(total) + ' sq ft';
+  }
+
+  // Feasibility for the room sizes in the table, with the open area they leave.
+  function sizesFeasibility() {
+    updateAreas();
+    var input = readInput();
+    var frame = GP.buildFrame(input);
+    var plotArea = input.width * input.depth;
+    var buildable = frame.buildable.w * frame.buildable.h;
+    var need = 0, needMin = 0, count = 0;
+    Object.keys(input.roomSizes).forEach(function (k) {
+      var s = input.roomSizes[k];
+      count++;
+      need += s.defW * s.defH;
+      var m = minOf(k, s.defW, s.defH);
+      needMin += m.w * m.h;
+    });
+    var open = buildable - need;
+    var box = $('feasibility');
+    box.textContent = '';
+    var verdict, tone;
+    if (!count) { verdict = 'Add at least one room to check feasibility.'; tone = 'warn'; }
+    else if (needMin > buildable) { verdict = 'Not feasible. At their minimum sizes these ' + count + ' rooms need ' + Math.round(needMin) + ' sq ft, but the buildable area is ' + Math.round(buildable) + ' sq ft. Reduce sizes or untick a room.'; tone = 'err'; }
+    else if (need > buildable) { verdict = 'Tight. These sizes need ' + Math.round(need) + ' sq ft against ' + Math.round(buildable) + ' sq ft buildable. Feasible only if the rooms are sized down toward their minimums.'; tone = 'warn'; }
+    else { verdict = 'Feasible. These ' + count + ' rooms use ' + Math.round(need) + ' sq ft of the ' + Math.round(buildable) + ' sq ft buildable area.'; tone = ''; }
+    addText(box, 'div', verdict, 'verdict ' + tone);
+    if (count && needMin <= buildable) {
+      var area = document.createElement('div');
+      area.className = 'open-area';
+      area.innerHTML = 'Possible open area: <b>about ' + Math.max(0, Math.round(open)) + ' sq ft</b> (' +
+        Math.max(0, Math.round(open / buildable * 100)) + '% of buildable, ' + Math.max(0, Math.round(open / plotArea * 100)) + '% of plot).';
+      box.appendChild(area);
+    }
+  }
+
+  function spaceCheck() {
+    var input = readInput();
+    var frame = GP.buildFrame(input);
+    var program = GP.buildProgram(input);
+    var plotArea = input.width * input.depth;
+    var buildable = frame.buildable.w * frame.buildable.h;
+    var need = 0, needMin = 0;
+    program.rooms.forEach(function (r) {
+      if (r.kind === 'passage') return;
+      need += r.defW * r.defH;
+      needMin += r.minW * r.minH;
+    });
+    var pct = function (x) { return Math.round(x / plotArea * 100); };
+    var verdict, tone;
+    if (needMin > buildable) { verdict = 'Does not fit. At their minimum sizes the rooms need ' + Math.round(needMin) + ' sq ft, but the buildable area is ' + Math.round(buildable) + ' sq ft. Remove a room or enlarge the plot.'; tone = 'err'; }
+    else if (need > buildable) { verdict = 'Tight. Rooms fit only near their minimum sizes (need ' + Math.round(need) + ' sq ft at default, ' + Math.round(buildable) + ' sq ft buildable).'; tone = 'warn'; }
+    else { verdict = 'Fits at default sizes.'; tone = ''; }
+    var box = $('space');
+    box.textContent = '';
+    [
+      ['Plot area', Math.round(plotArea) + ' sq ft'],
+      ['Buildable area after setbacks', Math.round(buildable) + ' sq ft (' + pct(buildable) + '% of plot)'],
+      ['Programme at default sizes', Math.round(need) + ' sq ft']
+    ].forEach(function (row) {
+      var d = document.createElement('div');
+      d.innerHTML = row[0] + ': <b>' + row[1] + '</b>';
+      box.appendChild(d);
+    });
+    addText(box, 'div', verdict, tone);
+    sizesFeasibility();
+  }
+
+  // Plans accumulate across "More plans" searches. Each search uses a new seed; duplicates are dropped.
+  var BASE_SEED = 20260101;
+  var searchCount = 0;
+  var found = [];
+  var foundKeys = {};
+
+  function planCard(l) {
+    var card = document.createElement('article');
+    card.className = 'card plan';
+    addText(card, 'h2', 'Plan ' + l.id);
+    var sc = l.scorecard;
+    var stats = document.createElement('div');
+    stats.className = 'stats';
+    var plotArea = l.frame.width * l.frame.depth;
+    stats.innerHTML = 'Plot <b>' + Math.round(plotArea) + ' sq ft</b> · Built-up <b>' + Math.round(sc.builtUpArea) +
+      ' sq ft</b> · Carpet <b>' + Math.round(sc.carpetArea) + ' sq ft</b> · Score <b>' + Math.round(sc.total) + '</b>';
+    card.appendChild(stats);
+    var wrap = document.createElement('div');
+    wrap.className = 'zoomable';
+    wrap.tabIndex = 0;
+    wrap.setAttribute('role', 'button');
+    wrap.setAttribute('aria-label', 'Enlarge plan ' + l.id);
+    var svgMarkup = GP.sceneToSvg(GP.planScene(l, { unit: 'ftin' }));
+    wrap.innerHTML = svgMarkup;
+    var open = function () { openLightbox('Plan ' + l.id, svgMarkup); };
+    wrap.addEventListener('click', open);
+    wrap.addEventListener('keydown', function (e) { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); open(); } });
+    card.appendChild(wrap);
+    (l.warnings || []).slice(0, 4).forEach(function (w) { addText(card, 'div', w, 'hint'); });
+    return card;
+  }
+
+  function showPlans(errors, warnings) {
+    var status = $('status'), messages = $('messages'), plans = $('plans');
+    $('result-card').hidden = false;
+    messages.textContent = '';
+    plans.textContent = '';
+    status.className = '';
+    if (!found.length && errors.length) {
+      status.className = 'err';
+      status.textContent = 'No plans to show.';
+      errors.forEach(function (e) { addText(messages, 'div', e, 'err'); });
+    } else {
+      status.textContent = found.length + ' plan' + (found.length === 1 ? '' : 's') + ' so far.';
+    }
+    warnings.forEach(function (w) { addText(messages, 'div', w, 'warn'); });
+    found.forEach(function (l) { plans.appendChild(planCard(l)); });
+  }
+
+  // Generate starts a new list; More plans adds to the current one.
+  function search(more) {
+    var status = $('status');
+    $('result-card').hidden = false;
+    if (!more) { found = []; foundKeys = {}; searchCount = 0; }
+    status.className = '';
+    status.textContent = 'Searching. This can take up to a minute.';
+    setTimeout(function () {
+      try {
+        searchCount++;
+        var res = GP.generatePlans(readInput(), { count: 3, restarts: 1200, seed: BASE_SEED + searchCount * 7919 });
+        var added = 0;
+        res.layouts.forEach(function (l) {
+          var key = GP.layoutSignature(l);
+          if (foundKeys[key]) return;
+          foundKeys[key] = true;
+          found.push(Object.assign({}, l, { id: 'L' + (found.length + 1) }));
+          added++;
+        });
+        showPlans(res.errors, res.warnings);
+        if (more) {
+          status.textContent = (added ? added + ' new plan' + (added === 1 ? '' : 's') + ' added. ' : 'No new plans in this search. ') +
+            found.length + ' in total.';
+        }
+        $('more').disabled = false;
+      } catch (e) {
+        status.className = 'err';
+        status.textContent = 'Something went wrong: ' + (e && e.message ? e.message : e);
+      }
+    }, 50);
+  }
+
+  var lightbox = $('lightbox');
+  var lastFocus = null;
+  function openLightbox(title, svgMarkup) {
+    lastFocus = document.activeElement;
+    $('lightbox-title').textContent = title;
+    $('lightbox-body').innerHTML = svgMarkup;
+    lightbox.hidden = false;
+    $('lightbox-close').focus();
+  }
+  function closeLightbox() {
+    lightbox.hidden = true;
+    $('lightbox-body').textContent = '';
+    if (lastFocus && lastFocus.focus) lastFocus.focus();
+  }
+  $('lightbox-close').addEventListener('click', closeLightbox);
+  lightbox.addEventListener('click', function (e) { if (e.target === lightbox) closeLightbox(); });
+  document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && !lightbox.hidden) closeLightbox(); });
+
+  function fillAndCheck() { showSetbackHints(); autoFill(); spaceCheck(); }
+
+  // Room sizes appear once the plot and programme have been analysed.
+  var analysed = false;
+  function analyse() {
+    analysed = true;
+    $('sizes-card').hidden = false;
+    $('generate-card').hidden = false;
+    fillAndCheck();
+    $('fill-note').textContent = 'Analysed. ' + $('fill-note').textContent;
+    $('sizes-card').scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+
+  // Sample plots.
+  var chips = $('presets');
+  GP.ACCEPTANCE_CASES.forEach(function (p) {
+    var b = document.createElement('button');
+    b.type = 'button';
+    b.textContent = p.name.replace(/^\d+\.\s*/, '');
+    b.addEventListener('click', function () { setFromInputs(p.input); analyse(); search(false); });
+    chips.appendChild(b);
+  });
+
+  buildSizeRows();
+  setFromInputs(defaults);
+  ['width', 'depth', 'bhk', 'floors', 'stair', 'facing', 'sb-mode', 'sb-front', 'sb-rear', 'sb-left', 'sb-right'].forEach(function (id) {
+    $(id).addEventListener('change', function () { if (analysed) fillAndCheck(); });
+    $(id).addEventListener('input', function () { if (analysed) fillAndCheck(); });
+  });
+  ['vastu', 'cars', 'wheelers'].forEach(function (id) {
+    $(id).addEventListener('change', spaceCheck);
+  });
+  document.querySelectorAll('#sizes input').forEach(function (el) {
+    el.addEventListener('change', spaceCheck);
+    el.addEventListener('input', spaceCheck);
+  });
+  $('fill').addEventListener('click', fillAndCheck);
+  $('analyse').addEventListener('click', analyse);
+  $('go').addEventListener('click', function () { if (!analysed) analyse(); search(false); });
+  $('more').addEventListener('click', function () { search(true); });
+  showSetbackHints();
+  spaceCheck();
+
+  $('copy').addEventListener('click', function () {
+    var text = $('fb');
+    var note = $('copied');
+    var fallback = function () { text.select(); note.textContent = 'Select the text and copy it.'; };
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text.value).then(function () { note.textContent = 'Copied.'; }, fallback);
+    } else {
+      fallback();
+    }
+  });
+})();
+</script>
+
+</body></html>
