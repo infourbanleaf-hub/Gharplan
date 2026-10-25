@@ -73,7 +73,7 @@ td input[type="checkbox"] { width: auto; }
 tr.must td:nth-child(2) { color: var(--accent); font-weight: 600; }
 tr.must td:nth-child(2)::after { content: " · must have"; font-weight: 400; font-size: 12px; color: var(--accent); }
 
-.plans { display: grid; gap: 16px; grid-template-columns: repeat(auto-fit, minmax(min(100%, 300px), 1fr)); }
+.plans { display: grid; gap: 16px; grid-template-columns: repeat(auto-fit, minmax(min(100%, 460px), 1fr)); }
 .plan { align-content: start; }
 .plan svg { width: 100%; height: auto; display: block; background: #fff; border-radius: 8px; }
 .zoomable { cursor: zoom-in; border-radius: 8px; }
