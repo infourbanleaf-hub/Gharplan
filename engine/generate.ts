@@ -319,7 +319,8 @@ export function applyStagger(rect: Rect, stagger: Stagger, env: Rect): Rect {
  * shift that leaves more furniture placed. Only runs on layouts that will be shown.
  */
 function fitDoors(build: (shifts: Map<string, number>) => Layout, childIds: string[]): Layout {
-  let shifts = new Map<string, number>();
+  // Doors start at a corner of their shared wall; a centred door is used only if it leaves more furniture placed.
+  let shifts = new Map<string, number>(childIds.map((id) => [id, -1]));
   let best = build(shifts);
   for (let pass = 0; pass < 2; pass++) {
     for (const id of childIds) {
