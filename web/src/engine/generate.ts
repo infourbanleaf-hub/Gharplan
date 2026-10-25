@@ -40,6 +40,10 @@ const MIN_DISTINCT = 0.35;
 const FURNITURE_SHORTLIST = 60;
 const MISSING_FURNITURE_COST = 6;
 const INFEASIBLE_COST = 1e3;
+/** Candidates with at most this many violations are kept as fallbacks when no valid plan is found. */
+const NEAR_VIOLATIONS = 2;
+const NEAR_KEEP = 200;
+const CLOSEST_COUNT = 3;
 
 export function normaliseInput(input: PlanInput): NormalisedInput {
   const attached = Array.from({ length: input.bhk }, (_, i) => input.attachedToilets[i] ?? i === 0);
@@ -106,6 +110,7 @@ export function generatePlans(rawInput: PlanInput, opts: GenerateOptions = {}): 
   const zoned = input.vastu === "strict" && input.zoneFirst === true;
   const rand = mulberry32(seed);
   const valid: Scored[] = [];
+  const near: (Scored & { violations: number })[] = [];
   let sampled = 0;
 
   const evaluateOrder = (
@@ -126,6 +131,10 @@ export function generatePlans(rawInput: PlanInput, opts: GenerateOptions = {}): 
     if (pen > 0) return { cost: INFEASIBLE_COST + pen, cand: null, ev: null };
     const cand = toCandidate(leaves, frame);
     const ev = evaluate(cand, frame, input, rooms);
+    if (ev.violations.length > 0 && ev.violations.length <= NEAR_VIOLATIONS) {
+      near.push({ cand, ev, seed: structSeed, violations: ev.violations.length });
+      if (near.length > NEAR_KEEP) near.splice(0, near.length - NEAR_KEEP);
+    }
     const invalid = ev.violations.length > 0 ? INFEASIBLE_COST : 0;
     return {
       cost: invalid + ev.violations.length * 5 + vastuDeficit(ev, input) + oversizeCost(cand, rooms),
@@ -178,6 +187,17 @@ export function generatePlans(rawInput: PlanInput, opts: GenerateOptions = {}): 
       if (chosen.every((p) => difference(p.cand, v.cand) >= MIN_DISTINCT)) chosen.push(v);
     }
   }
+  if (chosen.length === 0 && near.length > 0) {
+    // No valid plan: return the closest candidates. Each one lists its violations, so it can be edited by hand.
+    const closest = pickClosest(near, CLOSEST_COUNT);
+    const layouts = closest.map((c, i) =>
+      assembleLayout(`L${i + 1}`, c.seed, c.cand, c.ev, frame, input, rooms, warnings, new Map()),
+    );
+    warnings.push(
+      "No fully valid plan was found for these inputs. The closest plans are shown; each lists its rule violations.",
+    );
+    return { layouts, errors, warnings: unique(warnings), stats: { sampled, valid: valid.length } };
+  }
   if (chosen.length === 0) {
     errors.push("No valid layout found for these inputs. Try relaxing Vastu to Moderate, or change room choices.");
   } else if (chosen.length < count) {
@@ -185,4 +205,15 @@ export function generatePlans(rawInput: PlanInput, opts: GenerateOptions = {}): 
   }
   const layouts = chosen.map((c, i) => ({ ...c.layout, id: `L${i + 1}` }));
   return { layouts, errors, warnings: unique(warnings), stats: { sampled, valid: valid.length } };
+}
+
+/** Fewest violations first, then the best score; keeps only plans that differ from each other. */
+function pickClosest<T extends Scored & { violations: number }>(near: T[], count: number): T[] {
+  const sorted = [...near].sort((a, b) => a.violations - b.violations || b.ev.total - a.ev.total);
+  const chosen: T[] = [];
+  for (const c of sorted) {
+    if (chosen.length >= count) break;
+    if (chosen.every((p) => difference(p.cand, c.cand) >= MIN_DISTINCT)) chosen.push(c);
+  }
+  return chosen;
 }
