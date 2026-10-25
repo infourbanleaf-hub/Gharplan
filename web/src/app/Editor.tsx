@@ -1,5 +1,5 @@
 import { useMemo, useRef, useState, type PointerEvent as ReactPointerEvent } from "react";
-import { planMapper, planScene } from "../render/scene";
+import { DEFAULT_PLAN_OPTIONS, planMapper, planScene } from "../render/scene";
 import { sceneBody } from "../render/svg";
 import { resizeRoom, moveRoom, setRoomRect, snap, type Edge } from "../edit/ops";
 import type { CandidateRoom, Layout, Point, Rect, Unit } from "../engine/types";
@@ -135,7 +135,8 @@ export function Editor({
     });
   };
 
-  const handleSize = mapper.local({ x: HANDLE_FT, y: 0 }).x - mapper.local({ x: 0, y: 0 }).x;
+  // Handles keep a fixed size on screen. The scale is pixels per foot in the scene.
+  const handleSize = HANDLE_FT * DEFAULT_PLAN_OPTIONS.scale;
 
   return (
     <section className="card editor" aria-labelledby="editor-h">
