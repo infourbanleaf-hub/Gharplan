@@ -67,8 +67,10 @@ tr.must td:nth-child(2)::after { content: " · must have"; font-weight: 400; fon
 .lightbox-panel svg { width: 100%; height: auto; display: block; background: #fff; border-radius: 8px; }
 .lightbox-bar { display: flex; justify-content: space-between; align-items: center; gap: 12px; }
 .table-wrap { overflow-x: auto; }
-table { border-collapse: collapse; font-size: 13px; width: 100%; min-width: 560px; }
-th, td { text-align: left; padding: 6px 8px; border-bottom: 1px solid var(--line); vertical-align: middle; }
+table { border-collapse: collapse; font-size: 12px; width: 100%; min-width: 360px; }
+th, td { text-align: left; padding: 3px 6px; border-bottom: 1px solid var(--line); vertical-align: middle; line-height: 1.2; }
+#sizes input[type="number"] { width: 64px; padding: 3px 6px; }
+#sizes input[type="checkbox"] { margin: 0; }
 th { color: var(--muted); font-weight: 600; }
 td input { width: 64px; padding: 6px 8px; }
 </style>
@@ -91,10 +93,13 @@ td input { width: 64px; padding: 6px 8px; }
       <label>Staircase
         <select id="stair"><option value="internal" selected>Internal</option><option value="external">External</option></select>
       </label>
-      <label>Setback front (ft)<input id="sb-front" type="number" min="0" max="100" step="0.5" placeholder="table"></label>
-      <label>Setback rear (ft)<input id="sb-rear" type="number" min="0" max="100" step="0.5" placeholder="table"></label>
-      <label>Setback left (ft)<input id="sb-left" type="number" min="0" max="100" step="0.5" placeholder="table"></label>
-      <label>Setback right (ft)<input id="sb-right" type="number" min="0" max="100" step="0.5" placeholder="table"></label>
+      <label>Setbacks
+        <select id="sb-mode"><option value="zero" selected>Zero (default)</option><option value="table">Bye-law table</option></select>
+      </label>
+      <label>Setback front (ft)<input id="sb-front" type="number" min="0" max="100" step="0.5" placeholder="0"></label>
+      <label>Setback rear (ft)<input id="sb-rear" type="number" min="0" max="100" step="0.5" placeholder="0"></label>
+      <label>Setback left (ft)<input id="sb-left" type="number" min="0" max="100" step="0.5" placeholder="0"></label>
+      <label>Setback right (ft)<input id="sb-right" type="number" min="0" max="100" step="0.5" placeholder="0"></label>
       <label>Facing
         <select id="facing"><option>N</option><option>NE</option><option>E</option><option>SE</option><option>S</option><option>SW</option><option>W</option><option>NW</option></select>
       </label>
@@ -200,20 +205,24 @@ td input { width: 64px; padding: 6px 8px; }
 
   var SETBACK_SIDES = ['front', 'rear', 'left', 'right'];
 
-  // Setback overrides in feet; a blank box keeps the value from the setback table.
+  // Setback overrides in feet. A typed value always wins. A blank box is 0 in Zero mode,
+  // or the value from the bye-law table in Bye-law table mode.
   function readSetbacks() {
+    var useTable = $('sb-mode').value === 'table';
     var out = {};
     SETBACK_SIDES.forEach(function (side) {
       var v = $('sb-' + side).value;
       if (v !== '' && Number(v) >= 0) out[side] = Number(v);
+      else if (!useTable) out[side] = 0;
     });
-    return Object.keys(out).length ? out : undefined;
+    return out;
   }
 
-  // Shows the table's setbacks as hints in the empty boxes.
+  // Shows the setback each empty box will use: the bye-law table, or 0 in Zero mode.
   function showSetbackHints() {
+    var useTable = $('sb-mode').value === 'table';
     var table = GP.buildFrame(Object.assign({}, baseInput(), { setbacks: undefined })).setbacks;
-    SETBACK_SIDES.forEach(function (side) { $('sb-' + side).placeholder = String(table[side]); });
+    SETBACK_SIDES.forEach(function (side) { $('sb-' + side).placeholder = useTable ? String(table[side]) : '0'; });
   }
 
   // Input from the plot and programme controls only.
@@ -528,7 +537,7 @@ td input { width: 64px; padding: 6px 8px; }
 
   buildSizeRows();
   setFromInputs(defaults);
-  ['width', 'depth', 'bhk', 'floors', 'stair', 'facing', 'sb-front', 'sb-rear', 'sb-left', 'sb-right'].forEach(function (id) {
+  ['width', 'depth', 'bhk', 'floors', 'stair', 'facing', 'sb-mode', 'sb-front', 'sb-rear', 'sb-left', 'sb-right'].forEach(function (id) {
     $(id).addEventListener('change', function () { if (analysed) fillAndCheck(); });
     $(id).addEventListener('input', function () { if (analysed) fillAndCheck(); });
   });
