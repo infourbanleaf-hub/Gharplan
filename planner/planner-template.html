@@ -129,8 +129,9 @@ td input { width: 64px; padding: 6px 8px; }
     <p class="hint">Filled from the plot size and programme. Each room is at least its engine minimum (toilets 1 ft under their size) and at most +15% per side, and rooms may be rotated. Untick a room to leave it out of the plan.</p>
     <div class="row" style="margin-top:10px"><button type="button" id="fill">Fill from plot size</button><span class="hint" id="fill-note"></span></div>
     <div class="table-wrap" style="margin-top:10px"><table>
-      <thead><tr><th>In plan</th><th>Room</th><th>Width (ft)</th><th>Depth (ft)</th></tr></thead>
+      <thead><tr><th>In plan</th><th>Room</th><th>Width (ft)</th><th>Depth (ft)</th><th>Area (sq ft)</th></tr></thead>
       <tbody id="sizes"></tbody>
+      <tfoot><tr><th colspan="4">Total</th><th id="sizes-total">–</th></tr></tfoot>
     </table></div>
     <div id="feasibility" class="feas" aria-live="polite"></div>
   </section>
@@ -293,6 +294,9 @@ td input { width: 64px; padding: 6px 8px; }
         td.appendChild(input);
         tr.appendChild(td);
       });
+      var areaTd = document.createElement('td');
+      areaTd.id = 'area-' + r.key;
+      tr.appendChild(areaTd);
       body.appendChild(tr);
     });
   }
@@ -372,8 +376,21 @@ td input { width: 64px; padding: 6px 8px; }
     $('fill-note').textContent = note;
   }
 
+  // Area of each room in the table (width x depth, included rooms only) and the total at the bottom.
+  function updateAreas() {
+    var total = 0;
+    ROOMS.forEach(function (r) {
+      var w = Number($('rs-' + r.key + '-defW').value), h = Number($('rs-' + r.key + '-defH').value);
+      var area = $('use-' + r.key).checked && w > 0 && h > 0 ? w * h : 0;
+      total += area;
+      $('area-' + r.key).textContent = area ? String(Math.round(area)) : '–';
+    });
+    $('sizes-total').textContent = Math.round(total) + ' sq ft';
+  }
+
   // Feasibility for the room sizes in the table, with the open area they leave.
   function sizesFeasibility() {
+    updateAreas();
     var input = readInput();
     var frame = GP.buildFrame(input);
     var plotArea = input.width * input.depth;
