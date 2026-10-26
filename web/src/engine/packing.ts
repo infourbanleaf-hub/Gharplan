@@ -28,6 +28,8 @@ export interface SplitNode {
   passage: boolean;
   children: TreeNode[];
   axis?: "x" | "y";
+  /** Fixed splits keep their ratios; the optimiser leaves them alone (used for the staircase). */
+  fixed?: boolean;
 }
 
 export type TreeNode = LeafNode | SplitNode;
@@ -247,7 +249,7 @@ export function reserveOpenStrip(interior: Rect, rooms: RoomSpec[], openSpacePct
 
 export function collectSplits(node: TreeNode, out: SplitNode[] = []): SplitNode[] {
   if (!isLeaf(node)) {
-    out.push(node);
+    if (!node.fixed) out.push(node);
     node.children.forEach((c) => collectSplits(c, out));
   }
   return out;

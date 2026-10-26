@@ -35,6 +35,7 @@ import type {
   RoomSpec,
 } from "./types";
 import type { Item } from "./packing";
+import { chooseStairPlan, stairTree, type StairPlan } from "./stair";
 
 const MIN_DISTINCT = 0.35;
 const FURNITURE_SHORTLIST = 60;
@@ -95,7 +96,15 @@ export function generatePlans(rawInput: PlanInput, opts: GenerateOptions = {}): 
   }
 
   const rooms: RoomSpec[] = program.rooms;
-  const items = allocate(rooms, frame.interior);
+  // With a staircase, the staircase is placed at a fixed corner and the other rooms are packed around it.
+  const stairSpec = rooms.find((r) => r.kind === "stair");
+  const stairPlan: StairPlan | null = stairSpec ? chooseStairPlan(frame, stairSpec) : null;
+  if (stairSpec && !stairPlan) {
+    errors.push("There is no room for a staircase on this plot. Enlarge the plot or use an external staircase.");
+    return { layouts: [], errors, warnings, stats: { sampled: 0, valid: 0 } };
+  }
+  const treeRooms = stairPlan ? rooms.filter((r) => r.kind !== "stair") : rooms;
+  const items = allocate(treeRooms, frame.interior);
   const minNeeded = rooms.reduce((s, r) => s + r.minW * r.minH, 0);
   const interiorArea = frame.interior.w * frame.interior.h;
   if (minNeeded > interiorArea) {
@@ -118,9 +127,14 @@ export function generatePlans(rawInput: PlanInput, opts: GenerateOptions = {}): 
     structSeed: number,
     chainSeed: number,
     split: { rest: typeof frame.interior; strip?: typeof frame.interior },
+    bandCount: number,
   ): { cost: number; cand: Candidate | null; ev: Evaluation | null } => {
+    const tree = stairPlan
+      ? stairTree(order, bandCount, stairPlan, stairSpec!, mulberry32(structSeed))
+      : buildTree(order, mulberry32(structSeed));
+    if (!tree) return { cost: INFEASIBLE_COST, cand: null, ev: null };
     const { leaves, pen } = optimise(
-      buildTree(order, mulberry32(structSeed)),
+      tree,
       split.rest,
       mulberry32(chainSeed),
       leafPenalty,
@@ -150,14 +164,16 @@ export function generatePlans(rawInput: PlanInput, opts: GenerateOptions = {}): 
     const chainSeed = Math.floor(restartRand() * 2 ** 31);
     let order: Item[] =
       zoned && restartRand() < 0.5 ? orderItemsZoned(items, frame, restartRand) : orderItems(items, restartRand);
-    const split = reserved.strip && restartRand() < 0.75 ? reserved : packed;
-    let cur = evaluateOrder(order, structSeed, chainSeed, split);
+    // With a staircase, the open strip is not reserved and the first items form the staircase strip.
+    const bandCount = stairPlan ? Math.min(1 + Math.floor(restartRand() * 2), order.length - 1) : 0;
+    const split = !stairPlan && reserved.strip && restartRand() < 0.75 ? reserved : packed;
+    let cur = evaluateOrder(order, structSeed, chainSeed, split, bandCount);
     for (let step = 0; step < CHAIN_STEPS && cur.cost > 0; step++) {
       const next = order.slice();
       const i = Math.floor(restartRand() * next.length);
       const j = Math.floor(restartRand() * next.length);
       [next[i], next[j]] = [next[j], next[i]];
-      const trial = evaluateOrder(next, structSeed, chainSeed + step + 1, split);
+      const trial = evaluateOrder(next, structSeed, chainSeed + step + 1, split, bandCount);
       if (trial.cost <= cur.cost) {
         order = next;
         cur = trial;
