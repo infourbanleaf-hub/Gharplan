@@ -9,6 +9,8 @@ import { Editor, type EditCheck } from "./Editor";
 import { downloadFile, layoutToDxf, layoutToSvg } from "../export";
 import {
   DEFAULT_FORM,
+  OPEN_SPACE_RANGE,
+  SIZE_SCALE_RANGE,
   ROWS,
   buildEngineInput,
   fillFromPlot,
@@ -20,7 +22,7 @@ import {
   type PlotForm,
   type Rows,
 } from "./planning";
-import { Lightbox, NumField, PlanCard, RoomTable } from "./components";
+import { Lightbox, NumField, PlanCard, RoomTable, SiteDiagram, SliderField } from "./components";
 import { roomDefaults } from "../engine/config";
 
 const BASE_SEED = 20260101;
@@ -313,16 +315,35 @@ export function App() {
             </select>
           </label>
           {(["front", "rear", "left", "right"] as const).map((side) => (
-            <NumField
+            <SliderField
               key={side}
-              label={`Setback ${side} (ft)`}
-              value={form.setbacks[side]}
+              label={`Setback ${side}`}
+              value={form.setbacks[side] ?? hints[side]}
               min={0}
-              max={100}
-              placeholder={String(hints[side])}
+              max={30}
+              step={0.5}
+              format={(v) => `${v} ft`}
               onChange={(v) => changeGeometry({ setbacks: { ...form.setbacks, [side]: v } })}
             />
           ))}
+          <SliderField
+            label="Open space"
+            value={form.openSpacePct}
+            min={OPEN_SPACE_RANGE.min}
+            max={OPEN_SPACE_RANGE.max}
+            step={1}
+            format={(v) => `${v}%`}
+            onChange={(v) => changeGeometry({ openSpacePct: v })}
+          />
+          <SliderField
+            label="Room sizes"
+            value={form.sizeScale}
+            min={SIZE_SCALE_RANGE.min}
+            max={SIZE_SCALE_RANGE.max}
+            step={0.05}
+            format={(v) => `${Math.round(v * 100)}%`}
+            onChange={(v) => changeGeometry({ sizeScale: v })}
+          />
           <label className="field">
             <span>Bedrooms</span>
             <select value={form.bhk} onChange={(e) => changeGeometry({ bhk: Number(e.target.value) })}>
@@ -357,6 +378,7 @@ export function App() {
             </select>
           </label>
         </div>
+        <SiteDiagram form={form} />
         <div className="row">
           <button type="button" className="primary" onClick={() => analyse()}>
             Analyse plot and programme

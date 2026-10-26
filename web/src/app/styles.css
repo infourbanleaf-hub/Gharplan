@@ -104,3 +104,7 @@ tr.must td:nth-child(2)::after { content: " · must have"; font-weight: 400; fon
 @media (max-width: 760px) {
   .editor-grid { grid-template-columns: 1fr; }
 }
+
+.slider input[type="range"] { width: 100%; padding: 0; accent-color: var(--accent); }
+.site { margin: 0; display: grid; gap: 6px; max-width: 420px; }
+.site svg { width: 100%; height: auto; display: block; background: var(--card); border-radius: 8px; }

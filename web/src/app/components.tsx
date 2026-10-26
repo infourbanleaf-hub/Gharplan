@@ -1,5 +1,7 @@
-import { useEffect } from "react";
-import { ROWS, type Rows, type RowState } from "./planning";
+import { useEffect, useMemo } from "react";
+import { buildFrame } from "../engine/frame";
+import { normaliseInput } from "../engine/generate";
+import { ROWS, baseInput, type PlotForm, type Rows, type RowState } from "./planning";
 import type { Layout, RoomKind, Unit } from "../engine/types";
 import { layoutToSvg } from "../export";
 
@@ -197,5 +199,68 @@ export function Lightbox({ title, svg, onClose }: LightboxProps) {
         <div dangerouslySetInnerHTML={{ __html: svg }} />
       </div>
     </div>
+  );
+}
+
+interface SliderFieldProps {
+  label: string;
+  value: number;
+  min: number;
+  max: number;
+  step: number;
+  format?: (v: number) => string;
+  onChange: (v: number) => void;
+}
+
+/** A range slider with its current value shown beside it. Changes apply immediately. */
+export function SliderField({ label, value, min, max, step, format, onChange }: SliderFieldProps) {
+  const shown = format ? format(value) : String(value);
+  return (
+    <label className="field slider">
+      <span>
+        {label}: <b>{shown}</b>
+      </span>
+      <input type="range" min={min} max={max} step={step} value={value} onChange={(e) => onChange(Number(e.target.value))} />
+    </label>
+  );
+}
+
+interface SiteDiagramProps {
+  form: PlotForm;
+}
+
+/**
+ * Plan of the plot: the plot outline, the setbacks, and the buildable area that remains.
+ * Drawn from the same frame the generator uses, so it updates instantly with the controls.
+ */
+export function SiteDiagram({ form }: SiteDiagramProps) {
+  const frame = useMemo(() => buildFrame(normaliseInput(baseInput(form))), [form]);
+  const W = form.width;
+  const D = form.depth;
+  // Plan y grows toward the back, so flip it: the road (front) is at the bottom of the diagram.
+  const flip = (y: number) => D - y;
+  const b = frame.buildable;
+  const pad = Math.max(W, D) * 0.12;
+  const view = `${-pad} ${-pad} ${W + 2 * pad} ${D + 2 * pad}`;
+  const buildableArea = b.w * b.h;
+  const plotArea = W * D;
+  return (
+    <figure className="site">
+      <svg viewBox={view} role="img" aria-label={`Plot ${W} by ${D} feet, buildable area ${Math.round(buildableArea)} square feet`}>
+        <rect x={0} y={0} width={W} height={D} fill="#f4f5f1" stroke="#8a8f98" strokeWidth={Math.max(W, D) * 0.005} strokeDasharray={`${Math.max(W, D) * 0.02} ${Math.max(W, D) * 0.015}`} />
+        <rect x={b.x} y={flip(b.y + b.h)} width={b.w} height={b.h} fill="#e8f1ec" stroke="#1f6b4f" strokeWidth={Math.max(W, D) * 0.005} />
+        <line x1={0} y1={D + pad * 0.4} x2={W} y2={D + pad * 0.4} stroke="#1f4e8c" strokeWidth={Math.max(W, D) * 0.006} />
+        <text x={W / 2} y={D + pad * 0.85} textAnchor="middle" fontSize={Math.max(W, D) * 0.06} fill="#1d2026">
+          Road (front)
+        </text>
+        <text x={W / 2} y={D / 2} textAnchor="middle" fontSize={Math.max(W, D) * 0.05} fill="#1f6b4f">
+          Buildable {Math.round(buildableArea)} sq ft
+        </text>
+      </svg>
+      <figcaption className="hint">
+        Plot {W} x {D} ft ({Math.round(plotArea)} sq ft). Setbacks leave {Math.round(buildableArea)} sq ft, about{" "}
+        {Math.round((buildableArea / plotArea) * 100)}% of the plot.
+      </figcaption>
+    </figure>
   );
 }

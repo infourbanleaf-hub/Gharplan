@@ -57,7 +57,13 @@ export interface PlotForm {
   vastu: PlanInput["vastu"];
   cars: number;
   wheelers: number;
+  /** Open space as a percentage of the buildable area. */
+  openSpacePct: number;
+  /** Multiplier on the room sizes filled from the plot (1 is the default). */
+  sizeScale: number;
 }
+
+export const OPEN_SPACE_PCT = 5;
 
 export const DEFAULT_FORM: PlotForm = {
   width: 30,
@@ -73,9 +79,12 @@ export const DEFAULT_FORM: PlotForm = {
   vastu: "moderate",
   cars: 0,
   wheelers: 0,
+  openSpacePct: OPEN_SPACE_PCT,
+  sizeScale: 1,
 };
 
-export const OPEN_SPACE_PCT = 5;
+export const OPEN_SPACE_RANGE = { min: 0, max: 20 } as const;
+export const SIZE_SCALE_RANGE = { min: 0.8, max: 1.2 } as const;
 const MAX_VARIATION = 1.15;
 const TOILET_KEYS: RoomKind[] = ["attachedToilet", "commonToilet"];
 
@@ -99,7 +108,7 @@ export function baseInput(form: PlotForm): PlanInput {
     roadSide: form.roadSide,
     cornerSide: form.cornerSide,
     setbacks: setbacksOf(form),
-    openSpacePct: OPEN_SPACE_PCT,
+    openSpacePct: form.openSpacePct,
     bhk: form.bhk,
     vastu: form.vastu,
     floors: form.floors,
@@ -136,6 +145,7 @@ export function formFromInput(input: PlanInput): PlotForm {
     vastu: input.vastu,
     cars: input.parking.cars,
     wheelers: input.parking.twoWheelers,
+    openSpacePct: input.openSpacePct ?? OPEN_SPACE_PCT,
   };
 }
 
@@ -156,7 +166,7 @@ function includedByDefault(row: RowDef, form: PlotForm): boolean {
 export function fillFromPlot(form: PlotForm): { rows: Rows; note: string } {
   const frame = buildFrame(normaliseInput(baseInput(form)));
   const buildable = frame.buildable.w * frame.buildable.h;
-  const target = buildable * Math.min(0.92, 1 - OPEN_SPACE_PCT / 100);
+  const target = buildable * Math.min(0.92, 1 - form.openSpacePct / 100);
   const include: Record<string, boolean> = {};
   for (const row of ROWS) include[row.key] = includedByDefault(row, form);
 
@@ -191,7 +201,7 @@ export function fillFromPlot(form: PlotForm): { rows: Rows; note: string } {
     }, 0);
 
   const defaultArea = areaAt(1);
-  const scale = Math.min(MAX_VARIATION, Math.sqrt(target / defaultArea));
+  const scale = Math.min(MAX_VARIATION, Math.sqrt(target / defaultArea)) * form.sizeScale;
   const used = areaAt(scale);
   const minimum = minArea();
   let note =
