@@ -179,7 +179,7 @@ export function evaluate(
       }
     }
     for (const t of rooms.filter((r) => r.kind === "commonToilet")) {
-      if (!reached.has(t.id)) violations.push("Common toilet can only be reached through a bedroom");
+      if (!reached.has(t.id)) violations.push("Common toilet must be reachable without going through a bedroom");
     }
     // Second pass: rooms reachable only through a bedroom or an attached toilet.
     let grew = true;
