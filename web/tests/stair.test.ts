@@ -41,3 +41,23 @@ describe("two-floor ground plan", () => {
     }
   }, 120_000);
 });
+
+describe("two-floor plans", () => {
+  it("labels floors and keeps the staircase in place on both", () => {
+    const input = twoFloor({ width: 40, depth: 50 });
+    const res = generatePlans(input, { restarts: 400, seed: 20260101 });
+    const frame = buildFrame(normaliseInput(input));
+    const plan = chooseStairPlan(frame, buildProgram(normaliseInput(input)).rooms.find((r) => r.kind === "stair")!)!;
+    const ground = res.layouts.filter((l) => !l.upper);
+    const first = res.layouts.filter((l) => l.upper);
+    expect(ground.length).toBeGreaterThan(0);
+    expect(first.length).toBeGreaterThan(0);
+    for (const l of ground) expect(l.floorLabel).toBe("Ground floor");
+    for (const l of first) {
+      expect(l.floorLabel).toBe("First floor");
+      expect(l.id).toMatch(/^U/);
+      expect(l.rooms.some((r) => r.kind === "living")).toBe(false);
+      expect(l.rooms.find((r) => r.kind === "stair")!.rect).toEqual(plan.rect);
+    }
+  }, 120_000);
+});

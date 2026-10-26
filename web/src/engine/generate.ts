@@ -36,6 +36,7 @@ import type {
 } from "./types";
 import type { Item } from "./packing";
 import { chooseStairPlan, stairTree, type StairPlan } from "./stair";
+import type { Floor } from "./program";
 
 const MIN_DISTINCT = 0.35;
 const FURNITURE_SHORTLIST = 60;
@@ -78,7 +79,13 @@ function fitDoors(build: (shifts: Map<string, number>) => Layout, childIds: stri
 }
 
 /** Generates up to `count` distinct valid layouts for the input. Deterministic for a given seed. */
-export function generatePlans(rawInput: PlanInput, opts: GenerateOptions = {}): GenerateResult {
+/** Searches one floor. Single-floor plans pass no floor; two-floor plans call this once per floor. */
+function generateFloor(
+  rawInput: PlanInput,
+  opts: GenerateOptions,
+  floor?: Floor,
+  upper = false,
+): GenerateResult {
   const input = normaliseInput(rawInput);
   const limitErrors = validatePlotInput(input);
   if (limitErrors.length > 0) return { layouts: [], errors: limitErrors, warnings: [], stats: { sampled: 0, valid: 0 } };
@@ -89,7 +96,7 @@ export function generatePlans(rawInput: PlanInput, opts: GenerateOptions = {}): 
   const errors: string[] = [];
   const warnings: string[] = [];
   const frame: Frame = buildFrame(input);
-  const program = buildProgram(input);
+  const program = buildProgram(input, floor);
   warnings.push(...program.warnings);
   if (frame.interior.w <= 0 || frame.interior.h <= 0) {
     return { layouts: [], errors: ["Setbacks leave no buildable area on this plot."], warnings, stats: { sampled: 0, valid: 0 } };
@@ -144,7 +151,7 @@ export function generatePlans(rawInput: PlanInput, opts: GenerateOptions = {}): 
     if (split.strip) leaves.push({ rect: split.strip, open: true } as PackedLeaf);
     if (pen > 0) return { cost: INFEASIBLE_COST + pen, cand: null, ev: null };
     const cand = toCandidate(leaves, frame);
-    const ev = evaluate(cand, frame, input, rooms);
+    const ev = evaluate(cand, frame, input, rooms, upper);
     if (ev.violations.length > 0 && ev.violations.length <= NEAR_VIOLATIONS) {
       near.push({ cand, ev, seed: structSeed, violations: ev.violations.length });
       if (near.length > NEAR_KEEP) near.splice(0, near.length - NEAR_KEEP);
@@ -187,7 +194,7 @@ export function generatePlans(rawInput: PlanInput, opts: GenerateOptions = {}): 
   valid.sort((a, b) => b.ev.total - a.ev.total);
   const shortlist = valid.slice(0, FURNITURE_SHORTLIST).map((v, i) => {
     const build = (shifts: Map<string, number>) =>
-      assembleLayout(`L${i + 1}`, v.seed, v.cand, v.ev, frame, input, rooms, warnings, shifts);
+      assembleLayout(`L${i + 1}`, v.seed, v.cand, v.ev, frame, input, rooms, warnings, shifts, upper);
     const layout = fitDoors(build, [...v.ev.parent.keys()]);
     const adjusted = v.ev.total - MISSING_FURNITURE_COST * layout.missingFurniture - oversizeCost(v.cand, rooms);
     return { layout, cand: v.cand, adjusted };
@@ -207,7 +214,7 @@ export function generatePlans(rawInput: PlanInput, opts: GenerateOptions = {}): 
     // No valid plan: return the closest candidates. Each one lists its violations, so it can be edited by hand.
     const closest = pickClosest(near, CLOSEST_COUNT);
     const layouts = closest.map((c, i) =>
-      assembleLayout(`L${i + 1}`, c.seed, c.cand, c.ev, frame, input, rooms, warnings, new Map()),
+      assembleLayout(`L${i + 1}`, c.seed, c.cand, c.ev, frame, input, rooms, warnings, new Map(), upper),
     );
     warnings.push(
       "No fully valid plan was found for these inputs. The closest plans are shown; each lists its rule violations.",
@@ -232,4 +239,27 @@ function pickClosest<T extends Scored & { violations: number }>(near: T[], count
     if (chosen.every((p) => difference(p.cand, c.cand) >= MIN_DISTINCT)) chosen.push(c);
   }
   return chosen;
+}
+
+/**
+ * Generates plans. Single-floor plans are searched as one floor. Two-floor plans are searched
+ * per floor: ground floor plans are L1..L3, first floor plans are U1..U3. Both floors use the
+ * same staircase position.
+ */
+export function generatePlans(rawInput: PlanInput, opts: GenerateOptions = {}): GenerateResult {
+  if (rawInput.floors !== 2) return generateFloor(rawInput, opts);
+  const ground = generateFloor(rawInput, opts, "ground");
+  const first = generateFloor(rawInput, opts, "first", true);
+  return {
+    layouts: [
+      ...ground.layouts.map((l) => ({ ...l, floorLabel: "Ground floor" })),
+      ...first.layouts.map((l, i) => ({ ...l, id: `U${i + 1}`, floorLabel: "First floor" })),
+    ],
+    errors: unique([...ground.errors, ...first.errors]),
+    warnings: unique([...ground.warnings, ...first.warnings]),
+    stats: {
+      sampled: ground.stats.sampled + first.stats.sampled,
+      valid: ground.stats.valid + first.stats.valid,
+    },
+  };
 }

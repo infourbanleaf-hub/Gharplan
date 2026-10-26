@@ -46,7 +46,7 @@ function drawPlan(page: PDFPage, font: PDFFont, layout: Layout, unit: Unit): voi
 
   const sc = layout.scorecard;
   const plotArea = layout.frame.width * layout.frame.depth;
-  const title = `Plan ${layout.id}`;
+  const title = `${layout.floorLabel ?? "Plan"} ${layout.id}`;
   const stats = `Plot ${Math.round(plotArea)} sq ft   Built-up ${Math.round(sc.builtUpArea)} sq ft   Carpet ${Math.round(sc.carpetArea)} sq ft   Score ${Math.round(sc.total)}`;
   const size = `Plot ${formatLength(layout.frame.width, unit)} x ${formatLength(layout.frame.depth, unit)}`;
   page.drawText(title, { x: MARGIN, y: PAGE_H - MARGIN - 16, size: 16, font, color: rgb(0.1, 0.12, 0.1) });

@@ -231,22 +231,24 @@ export function assembleLayout(
   specs: RoomSpec[],
   warnings: string[],
   doorShifts: Map<string, number> = new Map(),
+  upper = false,
 ): Layout {
   const specById = new Map(specs.map((s) => [s.id, s]));
   const rooms = cand.rooms;
   const widthOf = (r: CandidateRoom) => doorWidthOf(r, specById);
   const openings: Opening[] = [];
-  const living = rooms.find((r) => r.kind === "living")!;
-  const roadSides = roadSidesOf(input);
-  const roadCandidates = exteriorSides(living.rect, frame.interior).filter((e) => roadSides.includes(e.side));
+  // First floors have no entrance, so no main door and no parking.
+  const living = upper ? undefined : rooms.find((r) => r.kind === "living");
+  const roadSides = upper ? [] : roadSidesOf(input);
+  const roadCandidates = living ? exteriorSides(living.rect, frame.interior).filter((e) => roadSides.includes(e.side)) : [];
   const roadSide = roadCandidates.sort((a, b) => b.length - a.length)[0];
   const layoutWarnings = [...warnings];
   let parking = [] as ReturnType<typeof parkingFor>;
   let mainDoorCenter: { side: Side; at: number } | null = null;
   for (const end of ["left", "right"] as const) {
-    parking = parkingFor(frame, input, end, layoutWarnings);
+    parking = upper ? [] : parkingFor(frame, input, end, layoutWarnings);
     mainDoorCenter = null;
-    if (!roadSide) break;
+    if (!roadSide || !living) break;
     const seg = sideSegment(living.rect, roadSide.side);
     const blockedByParking: [number, number][] =
       roadSide.side === "front" ? parking.map((p) => [p.rect.x - 1, p.rect.x + p.rect.w + 1] as [number, number]) : [];
@@ -256,7 +258,7 @@ export function assembleLayout(
       break;
     }
   }
-  if (roadSide) {
+  if (roadSide && living) {
     if (mainDoorCenter) {
       const seg = sideSegment(living.rect, mainDoorCenter.side);
       openings.push({
@@ -318,6 +320,7 @@ export function assembleLayout(
   layoutWarnings.push(...furniture.warnings);
   return {
     id,
+    upper,
     seed,
     frame,
     rooms,

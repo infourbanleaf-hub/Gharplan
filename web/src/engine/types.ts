@@ -191,6 +191,10 @@ export interface FurnitureItem {
 
 export interface Layout {
   id: string;
+  /** Set on two-floor plans: "Ground floor" or "First floor". */
+  floorLabel?: string;
+  /** True for first-floor layouts, which have no entrance. */
+  upper?: boolean;
   seed: number;
   frame: Frame;
   rooms: CandidateRoom[];

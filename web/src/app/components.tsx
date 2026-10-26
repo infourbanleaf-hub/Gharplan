@@ -125,7 +125,9 @@ export function PlanCard({ layout, unit, onEnlarge, onEdit, issueCount, onExport
   const svg = layoutToSvg(layout, unit);
   return (
     <article className="card plan">
-      <h2>Plan {layout.id}</h2>
+      <h2>
+        {layout.floorLabel ?? "Plan"} {layout.id}
+      </h2>
       {issueCount > 0 && (
         <div className="err">
           {issueCount} rule violation{issueCount === 1 ? "" : "s"} — see Edit for details.

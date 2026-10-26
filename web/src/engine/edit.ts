@@ -32,18 +32,18 @@ export function candidateFromRooms(rooms: CandidateRoom[], openSpaces: Rect[], f
  */
 export function reassemble(layout: Layout, rooms: CandidateRoom[], input: NormalisedInput): EditResult {
   const frame = layout.frame;
-  const program = buildProgram(input);
+  const program = buildProgram(input, layout.upper ? "first" : "ground");
   const cand = candidateFromRooms(rooms, layout.openSpaces, frame);
-  const ev = evaluate(cand, frame, input, program.rooms);
-  const next = assembleLayout(layout.id, layout.seed, cand, ev, frame, input, program.rooms, program.warnings, new Map());
+  const ev = evaluate(cand, frame, input, program.rooms, !!layout.upper);
+  const next = assembleLayout(layout.id, layout.seed, cand, ev, frame, input, program.rooms, program.warnings, new Map(), !!layout.upper);
   return { layout: next, violations: ev.violations, vastuFlags: ev.vastuFlags, total: ev.total };
 }
 
 /** The rule check for a layout as it stands, without re-placing anything. */
 export function checkLayout(layout: Layout, input: NormalisedInput): Omit<EditResult, "layout"> {
   const frame = layout.frame;
-  const program = buildProgram(input);
+  const program = buildProgram(input, layout.upper ? "first" : "ground");
   const cand = candidateFromRooms(layout.rooms, layout.openSpaces, frame);
-  const ev = evaluate(cand, frame, input, program.rooms);
+  const ev = evaluate(cand, frame, input, program.rooms, !!layout.upper);
   return { violations: ev.violations, vastuFlags: ev.vastuFlags, total: ev.total };
 }

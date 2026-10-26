@@ -79,6 +79,7 @@ export function evaluate(
   frame: Frame,
   input: NormalisedInput,
   specs: RoomSpec[],
+  upper = false,
 ): Evaluation {
   const violations: string[] = [];
   const specById = new Map(specs.map((s) => [s.id, s]));
@@ -140,8 +141,10 @@ export function evaluate(
     }
   }
 
-  const living = rooms.find((r) => r.kind === "living");
-  const roadSides = roadSidesOf(input);
+  // First floors have no entrance: access starts at the staircase and the road rules do not apply.
+  const living = upper ? undefined : rooms.find((r) => r.kind === "living");
+  const root = upper ? rooms.find((r) => r.kind === "stair") : living;
+  const roadSides = upper ? [] : roadSidesOf(input);
   const livingRoad = living ? (exterior.get(living.id) ?? []).filter((e) => roadSides.includes(e.side)) : [];
   if (living && livingRoad.length === 0) violations.push("Living room does not face the road (no entrance)");
   if (living && livingRoad.length > 0 && Math.max(...livingRoad.map((e) => e.length)) < MAIN_DOOR_FT + 1) {
@@ -154,8 +157,8 @@ export function evaluate(
 
   // Access: a breadth-first walk from the living room. Bedrooms are leaves; attached toilets hang off their bedroom.
   const parent = new Map<string, string>();
-  if (living) {
-    const reached = new Set<string>([living.id]);
+  if (root) {
+    const reached = new Set<string>([root.id]);
     const isAttachedToilet = (r: CandidateRoom) => r.kind === "attachedToilet";
     const linkable = (a: CandidateRoom, b: CandidateRoom): boolean => {
       if (isAttachedToilet(a) || isAttachedToilet(b)) {
@@ -165,7 +168,7 @@ export function evaluate(
       }
       return doorable(a, b, widthOf);
     };
-    const queue: CandidateRoom[] = [living];
+    const queue: CandidateRoom[] = [root];
     while (queue.length) {
       const u = queue.shift()!;
       if (isBedroom(u.kind) || isAttachedToilet(u)) continue;
@@ -207,7 +210,7 @@ export function evaluate(
       const r = rooms.find((x) => x.id === rule.roomId)!;
       return `${r.label}: does not meet "${rule.rule}"`;
     });
-  const scorecard = scoreCard(cand, frame, input, specById, exterior, vastuRules, parent);
+  const scorecard = scoreCard(cand, frame, input, specById, exterior, vastuRules, parent, upper);
   return { valid: violations.length === 0, violations, vastuFlags, scorecard, vastuRules, total: scorecard.total, parent };
 }
 
@@ -243,6 +246,7 @@ function scoreCard(
   exterior: Map<string, ExteriorSide[]>,
   vastuRules: VastuRule[],
   parent: Map<string, string>,
+  upper = false,
 ): Scorecard {
   const rooms = cand.rooms;
   const builtUp = rectArea(frame.buildable);
@@ -292,10 +296,10 @@ function scoreCard(
       ? 1
       : beds.filter((b) => {
           const from = accessParent(parent, b.id, rooms);
-          return from !== null && (from.kind === "passage" || from.kind === "living");
+          return from !== null && (from.kind === "passage" || from.kind === "living" || (upper && from.kind === "stair"));
         }).length / beds.length;
 
-  const roadSides = roadSidesOf(input);
+  const roadSides = upper ? [] : roadSidesOf(input);
   const bedsOffRoad =
     beds.length === 0
       ? 1

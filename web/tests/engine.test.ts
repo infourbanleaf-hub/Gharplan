@@ -97,9 +97,16 @@ describe("programme", () => {
     const p = buildProgram(normaliseInput({ ...defaultInput(), bhk: 2, attachedToilets: [true, true] }));
     expect(p.rooms.filter((r) => r.kind === "attachedToilet")).toHaveLength(2);
   });
-  it("warns that a two-floor plan is ground floor only", () => {
-    const p = buildProgram(normaliseInput({ ...defaultInput(), floors: 2 }));
-    expect(p.warnings.some((w) => w.includes("First floor is not generated"))).toBe(true);
+  it("puts living rooms on the ground floor and bedrooms on the first floor", () => {
+    const input = normaliseInput({ ...defaultInput(), floors: 2, bhk: 2 });
+    const ground = buildProgram(input, "ground").rooms.map((r) => r.kind);
+    const first = buildProgram(input, "first").rooms.map((r) => r.kind);
+    expect(ground).toContain("living");
+    expect(ground).not.toContain("master");
+    expect(first).toContain("master");
+    expect(first).not.toContain("living");
+    expect(ground).toContain("stair");
+    expect(first).toContain("stair");
   });
 });
 

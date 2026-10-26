@@ -121,7 +121,10 @@ export function App() {
         keys.add(key);
         added.push(l);
       }
-      const next = [...current, ...added].map((l, i) => ({ ...l, id: `L${i + 1}` }));
+      // Number each floor separately: ground floor L1, L2, ...; first floor U1, U2, ...
+      let ground = 0;
+      let first = 0;
+      const next = [...current, ...added].map((l) => ({ ...l, id: l.upper ? `U${++first}` : `L${++ground}` }));
       const normal = normaliseInput(buildEngineInput(f, r));
       for (const l of next) inputs.current.set(l, normal);
       setPlans(next);
