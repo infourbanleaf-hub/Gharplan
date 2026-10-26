@@ -1,0 +1,172 @@
+{
+  "source": "Default and minimum sizes. Originally from the GharPlan brief (feet). Revised from the Groot Parys, Galway County Council and Kanpur reference plans; see RULES.md.",
+  "rooms": {
+    "living": {
+      "label": "Living",
+      "defW": 14,
+      "defH": 16,
+      "minW": 10,
+      "minH": 12,
+      "doorWidth": 3,
+      "habitable": true,
+      "bedroom": false,
+      "source": "Groot Parys: living/dining 30-41 m2 (house 42-56)",
+      "minSource": "previous floor (feasibility); default is the reference size"
+    },
+    "dining": {
+      "label": "Dining",
+      "defW": 11,
+      "defH": 12,
+      "minW": 8,
+      "minH": 10,
+      "doorWidth": 3,
+      "habitable": true,
+      "bedroom": false,
+      "source": "Groot Parys: dining 14-26 m2 combined with living (house 45, 53)",
+      "minSource": "previous floor (feasibility); default is the reference size"
+    },
+    "kitchen": {
+      "label": "Kitchen",
+      "defW": 8,
+      "defH": 10,
+      "minW": 7,
+      "minH": 8,
+      "doorWidth": 2.5,
+      "habitable": true,
+      "bedroom": false
+    },
+    "master": {
+      "label": "Master Bedroom",
+      "defW": 13,
+      "defH": 14,
+      "minW": 11,
+      "minH": 12,
+      "doorWidth": 3,
+      "habitable": true,
+      "bedroom": true,
+      "source": "Groot Parys: master 12-15 m2 (house 42-56)",
+      "minSource": "previous floor (feasibility); default is the reference size"
+    },
+    "bedroom": {
+      "label": "Bedroom",
+      "defW": 11.5,
+      "defH": 12.5,
+      "minW": 10,
+      "minH": 10,
+      "doorWidth": 3,
+      "habitable": true,
+      "bedroom": true,
+      "source": "Groot Parys: bedroom 2/3 11-15 m2; Galway bedroom 2 13 m2 minimum",
+      "minSource": "previous floor (feasibility); default is the reference size"
+    },
+    "guest": {
+      "label": "Guest Bedroom",
+      "defW": 11.5,
+      "defH": 12.5,
+      "minW": 10,
+      "minH": 10,
+      "doorWidth": 3,
+      "habitable": true,
+      "bedroom": true,
+      "source": "As bedroom",
+      "minSource": "previous floor (feasibility); default is the reference size"
+    },
+    "attachedToilet": {
+      "label": "Attached Toilet",
+      "defW": 7.5,
+      "defH": 9,
+      "minW": 4.5,
+      "minH": 7,
+      "doorWidth": 2.5,
+      "habitable": false,
+      "bedroom": false,
+      "source": "Groot Parys: en-suite 6.2-8.1 m2 (house 42-56)",
+      "minSource": "previous floor (feasibility); default is the reference size"
+    },
+    "commonToilet": {
+      "label": "Common Toilet",
+      "defW": 6.5,
+      "defH": 7.5,
+      "minW": 4,
+      "minH": 6,
+      "doorWidth": 2.5,
+      "habitable": false,
+      "bedroom": false,
+      "source": "Groot Parys: bathroom 4.7-8.2 m2; Kanpur toilet 5x7 ft",
+      "minSource": "previous floor (feasibility); default is the reference size"
+    },
+    "puja": {
+      "label": "Puja",
+      "defW": 5,
+      "defH": 5,
+      "minW": 4,
+      "minH": 4,
+      "doorWidth": 2.5,
+      "habitable": false,
+      "bedroom": false
+    },
+    "study": {
+      "label": "Study",
+      "defW": 8,
+      "defH": 10,
+      "minW": 7,
+      "minH": 9,
+      "doorWidth": 3,
+      "habitable": true,
+      "bedroom": false,
+      "minSource": "assumed"
+    },
+    "store": {
+      "label": "Store",
+      "defW": 5,
+      "defH": 6,
+      "minW": 4,
+      "minH": 5,
+      "doorWidth": 2.5,
+      "habitable": false,
+      "bedroom": false,
+      "minSource": "assumed"
+    },
+    "utility": {
+      "label": "Utility / Wash",
+      "defW": 4,
+      "defH": 8,
+      "minW": 3.5,
+      "minH": 6,
+      "doorWidth": 2.5,
+      "habitable": false,
+      "bedroom": false,
+      "minSource": "assumed"
+    },
+    "stair": {
+      "label": "Staircase",
+      "defW": 7,
+      "defH": 12,
+      "minW": 6,
+      "minH": 10,
+      "doorWidth": 3,
+      "habitable": false,
+      "bedroom": false,
+      "minSource": "assumed"
+    },
+    "passage": {
+      "label": "Passage",
+      "defW": 3.5,
+      "defH": 3.5,
+      "minW": 3.5,
+      "minH": 3.5,
+      "doorWidth": 3.5,
+      "habitable": false,
+      "bedroom": false,
+      "source": "Groot Parys: passage 1.0 m wide, 4-7 m long; Kanpur: 1.83 m passage"
+    }
+  },
+  "windowWidthFt": 4,
+  "ventilatorWidthFt": 2,
+  "mainDoorWidthFt": 3.5,
+  "openKitchenWidthFt": 4,
+  "wallExternalFt": 0.75,
+  "passageWidthFt": 3.5,
+  "maxAspect": 2,
+  "maxCirculationRatio": 0.12
+}
