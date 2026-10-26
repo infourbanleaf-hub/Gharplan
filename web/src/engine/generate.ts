@@ -36,7 +36,7 @@ import type {
 } from "./types";
 import type { Item } from "./packing";
 import { chooseStairPlan, stairTree, type StairPlan } from "./stair";
-import type { Floor } from "./program";
+import { scaleToFill, type Floor } from "./program";
 
 const MIN_DISTINCT = 0.35;
 const FURNITURE_SHORTLIST = 60;
@@ -102,7 +102,8 @@ function generateFloor(
     return { layouts: [], errors: ["Setbacks leave no buildable area on this plot."], warnings, stats: { sampled: 0, valid: 0 } };
   }
 
-  const rooms: RoomSpec[] = program.rooms;
+  // First floors use room sizes scaled to fill the floor; other floors use the defaults.
+  const rooms: RoomSpec[] = upper ? scaleToFill(program.rooms, frame.interior.w, frame.interior.h) : program.rooms;
   // With a staircase, the staircase is placed at a fixed corner and the other rooms are packed around it.
   const stairSpec = rooms.find((r) => r.kind === "stair");
   const stairPlan: StairPlan | null = stairSpec ? chooseStairPlan(frame, stairSpec) : null;

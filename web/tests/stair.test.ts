@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { buildFrame } from "../src/engine/frame";
-import { buildProgram } from "../src/engine/program";
+import { buildProgram, scaleToFill } from "../src/engine/program";
 import { normaliseInput, generatePlans } from "../src/engine/generate";
 import { chooseStairPlan } from "../src/engine/stair";
 import { defaultInput } from "../src/engine/presets";
@@ -60,4 +60,20 @@ describe("two-floor plans", () => {
       expect(l.rooms.find((r) => r.kind === "stair")!.rect).toEqual(plan.rect);
     }
   }, 120_000);
+});
+
+describe("first-floor room scaling", () => {
+  it("keeps the staircase size and never scales past 1.5 times the defaults", () => {
+    const input = normaliseInput(twoFloor({ width: 40, depth: 50 }));
+    const frame = buildFrame(input);
+    const rooms = buildProgram(input, "first").rooms;
+    const scaled = scaleToFill(rooms, frame.interior.w, frame.interior.h);
+    const stairBefore = rooms.find((r) => r.kind === "stair")!;
+    const stairAfter = scaled.find((r) => r.kind === "stair")!;
+    expect(stairAfter.defW).toBe(stairBefore.defW);
+    expect(stairAfter.defH).toBe(stairBefore.defH);
+    const master = rooms.find((r) => r.kind === "master")!;
+    const masterAfter = scaled.find((r) => r.kind === "master")!;
+    expect(masterAfter.defW / master.defW).toBeLessThanOrEqual(1.5 + 1e-9);
+  });
 });

@@ -91,3 +91,22 @@ export function buildProgram(input: NormalisedInput, floor?: Floor): Programme {
 export function roomConfig(kind: RoomKind) {
   return roomDefaults.rooms[kind];
 }
+
+/** Share of the interior the room defaults should fill on a first floor, before the search runs. */
+const FILL_TARGET = 0.85;
+/** Largest default-size scale for a first floor, so rooms do not grow past what the rules allow. */
+const MAX_FILL_SCALE = 1.5;
+
+/**
+ * Scales a first floor's room defaults up to fill the floor. Room caps and allocation both come
+ * from the defaults, so this lets the search use the floor instead of leaving open space. The
+ * staircase keeps its fixed size, and minimum sizes do not change.
+ */
+export function scaleToFill(rooms: RoomSpec[], interiorW: number, interiorH: number): RoomSpec[] {
+  const sized = rooms.filter((r) => r.kind !== "passage" && r.kind !== "stair");
+  const defTotal = sized.reduce((s, r) => s + r.defW * r.defH, 0);
+  if (defTotal === 0) return rooms;
+  const scale = Math.min(MAX_FILL_SCALE, Math.sqrt((interiorW * interiorH * FILL_TARGET) / defTotal));
+  if (scale <= 1) return rooms;
+  return rooms.map((r) => (r.kind === "passage" || r.kind === "stair" ? r : { ...r, defW: r.defW * scale, defH: r.defH * scale }));
+}
