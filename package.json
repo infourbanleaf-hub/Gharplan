@@ -10,7 +10,11 @@
     "android": "expo start --android",
     "web": "expo start --web",
     "export:web": "expo export --platform web",
-    "preview": "tsx scripts/render-svg.ts 0 previews"
+    "preview": "tsx scripts/render-svg.ts 0 previews",
+    "sweep": "tsx scripts/sweep-plots.ts",
+    "planner:build": "node planner/build.mjs",
+    "planner:smoke": "node scripts/planner-smoke.cjs planner/dist/planner.html",
+    "release:planner": "bash scripts/release-planner.sh"
   },
   "devDependencies": {
     "@types/node": "^22.20.5",

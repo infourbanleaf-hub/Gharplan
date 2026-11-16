@@ -70,6 +70,7 @@ export const COLORS = {
   parkingFill: '#eceef1',
 };
 
+const OPEN_FILL = '#f4f8ef';
 const ROOM_FILL: Record<string, string> = {
   living: '#fdf3d0', dining: '#fde8d0', kitchen: '#e6f5d8', master: '#d9e8fb', bedroom: '#dfeefa',
   guest: '#dfeefa', attachedToilet: '#e8e2f5', commonToilet: '#e8e2f5', puja: '#fbe0ea',
@@ -134,6 +135,10 @@ export function planScene(layout: Layout, opts: Partial<PlanOptions> = {}): Scen
   for (const r of layout.rooms) {
     poly(rectPoints(r.rect), ROOM_FILL[r.kind] ?? '#ffffff', 'rooms');
   }
+  // 2b. Open space: left inside the envelope, not a room. Hatched so it reads as unbuilt.
+  for (const open of layout.openSpaces) {
+    poly(rectPoints(open), OPEN_FILL, 'rooms', { stroke: COLORS.dimension, strokeWidth: 0.6, dash: '3 3' });
+  }
 
   // 3. Parking in the front setback
   for (const p of layout.parking) {
@@ -162,6 +167,12 @@ export function planScene(layout: Layout, opts: Partial<PlanOptions> = {}): Scen
 
   // 6. Openings: gap in the wall, then the door leaf and swing arc, or window glazing lines
   for (const op of layout.openings) drawOpening(op, layout, local, items);
+
+  // 6b. Open space labels
+  for (const open of layout.openSpaces) {
+    const c = { x: open.x + open.w / 2, y: open.y + open.h / 2 };
+    text(c, 'Open', 10, COLORS.dimension, 'labels', 'middle', undefined, 0);
+  }
 
   // 7. Room labels and dimensions
   for (const r of layout.rooms) {

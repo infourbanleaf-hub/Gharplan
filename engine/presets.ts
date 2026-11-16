@@ -8,6 +8,7 @@ export function defaultInput(): PlotInput {
     facing: 'N',
     roadSide: 'front',
     cornerSide: 'right',
+    openSpacePct: 5,
     floors: 1,
     parking: { cars: 0, twoWheelers: 0 },
     staircase: 'internal',

@@ -239,7 +239,9 @@ export function placeFurniture(rooms: PlacedRoom[], openings: Opening[], frame: 
           .filter((x) => x.score > -Infinity)
           .sort((a, b) => b.score - a.score);
         for (const { w } of walls) {
-          const cands = candidatesOnWall(room.rect, variant, tpl.against, w);
+          // Try the item both ways: its long side along the wall, or its short side along the wall.
+          const orients: ('long' | 'short')[] = [tpl.against, tpl.against === 'long' ? 'short' : 'long'];
+          const cands = orients.flatMap((o) => candidatesOnWall(room.rect, variant, o, w));
           for (const c of cands) {
             const clearance = clearanceFor(c.body, c.wall, variant.clearance);
             if (!fits(c.body, clearance, room)) continue;

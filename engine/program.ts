@@ -13,6 +13,8 @@ interface RoomConfig {
 }
 
 const ROOMS = roomDefaults.rooms as Record<string, RoomConfig>;
+const TOILET_KINDS = new Set(['attachedToilet', 'commonToilet']);
+const TOILET_TOL_FT = 1;
 
 function spec(id: string, kind: RoomKind, overrides: PlotInput['roomSizes'], attachedTo?: string): RoomSpec {
   const c = ROOMS[kind];
@@ -21,8 +23,9 @@ function spec(id: string, kind: RoomKind, overrides: PlotInput['roomSizes'], att
     id,
     kind,
     label: c.label,
-    minW: o.minW ?? c.minW,
-    minH: o.minH ?? c.minH,
+    // Toilets: default within 1 ft each way.
+    minW: o.minW ?? (TOILET_KINDS.has(kind) ? (o.defW ?? c.defW) - TOILET_TOL_FT : c.minW),
+    minH: o.minH ?? (TOILET_KINDS.has(kind) ? (o.defH ?? c.defH) - TOILET_TOL_FT : c.minH),
     defW: o.defW ?? c.defW,
     defH: o.defH ?? c.defH,
     doorWidth: c.doorWidth,

@@ -22,6 +22,7 @@ const BEDROOM_KINDS = new Set(['master', 'bedroom', 'guest']);
 
 export interface Candidate {
   rooms: PlacedRoom[];
+  openSpaces?: Rect[];
 }
 
 export interface Evaluation {
@@ -80,6 +81,13 @@ export function evaluate(
     for (let j = i + 1; j < rooms.length; j++) {
       if (overlaps(rooms[i].rect, rooms[j].rect)) violations.push(`${rooms[i].label} overlaps ${rooms[j].label}`);
     }
+  }
+
+  // 1a. Open space: the rooms must leave a share of the built-up footprint unbuilt (courtyard, light well).
+  const openShare = (input.openSpacePct ?? 0) / 100;
+  const roomsArea = rooms.reduce((s, r) => s + rectArea(r.rect), 0);
+  if (roomsArea > rectArea(frame.buildable) * (1 - openShare) + 1e-6) {
+    violations.push(`Rooms cover more than ${100 - (input.openSpacePct ?? 0)}% of the built-up area; leave ${input.openSpacePct ?? 0}% open`);
   }
 
   // 1b. No corridors: a passage that is too long, or too narrow for its length, is rejected.

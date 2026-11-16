@@ -40,6 +40,8 @@ export interface PlotInput {
   cornerSide: CornerSide;
   /** Optional overrides in feet; anything omitted comes from the setback table. */
   setbacks?: Partial<Setbacks>;
+  /** Share of the built-up footprint left open inside the walls (courtyard, light well), in percent. */
+  openSpacePct?: number;
   floors: 1 | 2;
   parking: { cars: 0 | 1; twoWheelers: 0 | 1 | 2 };
   staircase: 'internal' | 'external';
@@ -165,6 +167,8 @@ export interface Layout {
   seed: number;
   frame: Frame;
   rooms: PlacedRoom[];
+  /** Open space left inside the envelope where rooms were kept to their size cap (courtyard, light well). */
+  openSpaces: Rect[];
   openings: Opening[];
   parking: ParkingSlot[];
   furniture: FurnitureItem[];
