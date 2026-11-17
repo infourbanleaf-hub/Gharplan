@@ -144,6 +144,8 @@ export function evaluate(
   // First floors have no entrance: access starts at the staircase and the road rules do not apply.
   const living = upper ? undefined : rooms.find((r) => r.kind === "living");
   const root = upper ? rooms.find((r) => r.kind === "stair") : living;
+  // Without a staircase nothing reaches the first floor, so its rooms cannot be checked for access.
+  if (upper && !root) violations.push("First floor has no staircase to reach it");
   const roadSides = upper ? [] : roadSidesOf(input);
   const livingRoad = living ? (exterior.get(living.id) ?? []).filter((e) => roadSides.includes(e.side)) : [];
   if (living && livingRoad.length === 0) violations.push("Living room does not face the road (no entrance)");
