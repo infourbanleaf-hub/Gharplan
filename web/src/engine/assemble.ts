@@ -6,6 +6,7 @@ import { placeFurniture } from "./furniture";
 import { PREFERRED_ZONES } from "./vastu";
 import { compassOfPoint, compassVector } from "./frame";
 import { roadSidesOf } from "./roads";
+import { centredSegment, placeOnSide, sideSegment, type Segment } from "./wallplace";
 import { shuffle } from "./rng";
 import type { Evaluation } from "./evaluate";
 import type {
@@ -16,7 +17,6 @@ import type {
   NormalisedInput,
   Opening,
   PlanInput,
-  Rect,
   RoomSpec,
   Shared,
   Side,
@@ -28,11 +28,6 @@ const MAIN_DOOR_FT = roomDefaults.mainDoorWidthFt;
 const OPEN_KITCHEN_FT = roomDefaults.openKitchenWidthFt;
 const WINDOW_FT = roomDefaults.windowWidthFt;
 const VENT_FT = roomDefaults.ventilatorWidthFt;
-
-export interface Segment {
-  a: { x: number; y: number };
-  b: { x: number; y: number };
-}
 
 /** Turns packed leaves into a candidate: rooms with their outer walls and compass direction, plus open space. */
 export function toCandidate(leaves: PackedLeaf[], frame: Frame): Candidate {
@@ -169,39 +164,6 @@ export function vastuDeficit(ev: Evaluation, input: Pick<PlanInput, "vastu">): n
   return ev.vastuRules.reduce((sum, r) => sum + Math.max(0, 0.6 - r.score) * 10, 0);
 }
 
-/** Free segment of a wall long enough for a door, centred in the widest gap. Null when nothing fits. */
-export function placeOnSide(seg: Segment, width: number, blocked: [number, number][] = []): number | null {
-  const vertical = seg.a.x === seg.b.x;
-  const start = vertical ? Math.min(seg.a.y, seg.b.y) : Math.min(seg.a.x, seg.b.x);
-  const end = vertical ? Math.max(seg.a.y, seg.b.y) : Math.max(seg.a.x, seg.b.x);
-  let free: [number, number][] = [[start, end]];
-  for (const [lo, hi] of blocked) {
-    free = free.flatMap(([a, b]): [number, number][] => {
-      const parts: [number, number][] = [];
-      if (lo > a) parts.push([a, Math.min(b, lo)]);
-      if (hi < b) parts.push([Math.max(a, hi), b]);
-      return parts.filter(([x, y]) => y > x);
-    });
-  }
-  let best: [number, number] | null = null;
-  for (const f of free) {
-    if (f[1] - f[0] >= width + 1 && (!best || f[1] - f[0] > best[1] - best[0])) best = f;
-  }
-  return best ? (best[0] + best[1]) / 2 : null;
-}
-
-export function sideSegment(r: Rect, side: Side): Segment {
-  switch (side) {
-    case "front":
-      return { a: { x: r.x, y: r.y }, b: { x: r.x + r.w, y: r.y } };
-    case "back":
-      return { a: { x: r.x, y: r.y + r.h }, b: { x: r.x + r.w, y: r.y + r.h } };
-    case "left":
-      return { a: { x: r.x, y: r.y }, b: { x: r.x, y: r.y + r.h } };
-    case "right":
-      return { a: { x: r.x + r.w, y: r.y }, b: { x: r.x + r.w, y: r.y + r.h } };
-  }
-}
 
 function edgeSegment(e: Shared): Segment {
   return e.axis === "v"
@@ -209,16 +171,6 @@ function edgeSegment(e: Shared): Segment {
     : { a: { x: e.x1, y: e.y }, b: { x: e.x2, y: e.y } };
 }
 
-
-/** A segment of width `width`, centred at `at` along the segment's axis. */
-export function centredSegment(seg: Segment, at: number, width: number): Segment {
-  const vertical = seg.a.x === seg.b.x;
-  const lo = at - width / 2;
-  const hi = at + width / 2;
-  return vertical
-    ? { a: { x: seg.a.x, y: lo }, b: { x: seg.a.x, y: hi } }
-    : { a: { x: lo, y: seg.a.y }, b: { x: hi, y: seg.a.y } };
-}
 
 /** Builds the full layout for one candidate: doors, windows, parking, furniture and warnings. */
 export function assembleLayout(

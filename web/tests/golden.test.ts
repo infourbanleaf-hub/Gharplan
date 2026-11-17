@@ -37,6 +37,19 @@ describe("golden parity with the original engine", () => {
       it(key, () => {
         const expected = goldenMap[key];
         const res = generatePlans(c.input, { restarts: RESTARTS, seed });
+        if (c.name.startsWith("2. 30x50")) {
+          // Deliberate change: the original accepted plans whose living room had no window beside the
+          // main door. The port rejects them, so the search needs the UI's larger budget to find plans.
+          const large = generatePlans(c.input, { restarts: 1200, seed });
+          expect(large.layouts.length).toBe(3);
+          const input = normaliseInput(c.input);
+          for (const l of large.layouts) {
+            expect(checkLayout(l, input).violations).toEqual([]);
+            const living = l.rooms.find((r) => r.kind === "living")!;
+            expect(l.openings.filter((o) => o.kind === "window" && o.roomId === living.id).length).toBeGreaterThan(0);
+          }
+          return;
+        }
         if (expected.layouts.length === 0) {
           // Deliberate change: the original returned no plans here. The port returns the closest
           // plans instead, each with its rule violations listed, so the user can edit them.

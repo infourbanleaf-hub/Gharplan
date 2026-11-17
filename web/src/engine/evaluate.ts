@@ -1,5 +1,6 @@
 import { roomConfig } from "./program";
 import { roadSidesOf } from "./roads";
+import { livingWindowFits } from "./wallplace";
 import { parkingFor } from "./parking";
 import { clamp01 } from "./math";
 import {
@@ -155,6 +156,9 @@ export function evaluate(
   const livingOnFront = living ? (exterior.get(living.id) ?? []).some((e) => e.side === "front") : false;
   if (living && livingOnFront && !mainDoorClear(living.rect, frame, input)) {
     violations.push("Living room has no clear stretch for the main door beside the parking");
+  }
+  if (living && !livingWindowFits(living.rect, frame, input, upper)) {
+    violations.push("Living room has no wall left for a window beside the main door");
   }
 
   // Access: a breadth-first walk from the living room. Bedrooms are leaves; attached toilets hang off their bedroom.
