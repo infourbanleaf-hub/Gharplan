@@ -1,0 +1,10 @@
+{
+  "source": "Generic defaults from the GharPlan brief. Verify with the local authority. City bye-law packs will override this file.",
+  "cornerRoadSideMinM": 1.5,
+  "bands": [
+    { "maxAreaSqM": 100, "frontM": 3, "rearM": 0, "sideM": 0, "sideRule": "both" },
+    { "maxAreaSqM": 250, "frontM": 3, "rearM": 1.5, "sideM": 0, "sideRule": "both" },
+    { "maxAreaSqM": 500, "frontM": 4.5, "rearM": 3, "sideM": 1.5, "sideRule": "oneSide" },
+    { "maxAreaSqM": null, "frontM": 6, "rearM": 3, "sideM": 3, "sideRule": "both" }
+  ]
+}

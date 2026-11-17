@@ -1,0 +1,409 @@
+{
+  "1. 30x40 east, 2BHK, Vastu moderate, 1 car | seed 20260101": {
+    "errors": [],
+    "warnings": [],
+    "stats": {
+      "sampled": 400,
+      "valid": 6
+    },
+    "layouts": [
+      {
+        "id": "L1",
+        "signature": "kitchen:0.375,10.375,8,8.75|toilet-common:0.375,19.125,8,5.75|toilet-master:0.375,24.875,8,9.75|dining:8.375,10.375,11.25,10.3125|master:8.375,20.6875,11.25,13.9375|living:19.625,10.375,10,12.4375|bed2:19.625,22.8125,10,11.8125",
+        "total": 77.95007112941896,
+        "builtUp": 750,
+        "carpet": 638.9296875,
+        "openings": 17,
+        "furniture": 12,
+        "missingFurniture": 4,
+        "warnings": [
+          "Attached Toilet: does not meet \"Toilet in NW or W, never NE\"",
+          "Master Bedroom: does not meet \"Master bedroom in SW\"",
+          "Master Bedroom: no room for wardrobe",
+          "Living: no room for centre table",
+          "Bedroom: no room for wardrobe",
+          "Kitchen: no room for fridge"
+        ]
+      },
+      {
+        "id": "L2",
+        "signature": "living:0.375,10.375,10.6875,13.5625|bed2:0.375,23.9375,10.6875,10.6875|dining:11.0625,10.375,11,9.9375|master:11.0625,20.3125,11,14.3125|kitchen:22.0625,10.375,7.5625,9.9375|toilet-common:22.0625,20.3125,7.5625,5.625|toilet-master:22.0625,25.9375,7.5625,8.6875",
+        "total": 83.18786866013369,
+        "builtUp": 750,
+        "carpet": 639.09375,
+        "openings": 17,
+        "furniture": 10,
+        "missingFurniture": 6,
+        "warnings": [
+          "Master Bedroom: does not meet \"Master bedroom in SW\"",
+          "Kitchen: does not meet \"Kitchen in SE (NW fallback)\"",
+          "Master Bedroom: no room for wardrobe",
+          "Master Bedroom: no room for side table",
+          "Living: no room for tv unit",
+          "Bedroom: no room for wardrobe",
+          "Kitchen: no room for platform",
+          "Attached Toilet: no room for shower"
+        ]
+      },
+      {
+        "id": "L3",
+        "signature": "living:0.375,10.375,10.9375,12|bed2:0.375,22.375,10.9375,12.25|dining:11.3125,10.375,8.4375,10|kitchen:19.75,10.375,9.2,10|master:11.3125,20.375,11.375,14.25|toilet-common:22.6875,20.375,6.9375,6.0625|toilet-master:22.6875,26.4375,6.9375,8.1875",
+        "total": 75.5251961366092,
+        "builtUp": 750,
+        "carpet": 634.72734375,
+        "openings": 16,
+        "furniture": 10,
+        "missingFurniture": 6,
+        "warnings": [
+          "Kitchen: does not meet \"Kitchen in SE (NW fallback)\"",
+          "Master Bedroom: does not meet \"Master bedroom in SW\"",
+          "Master Bedroom: no room for wardrobe",
+          "Living: no room for tv unit",
+          "Bedroom: no room for wardrobe",
+          "Kitchen: no room for fridge",
+          "Attached Toilet: no room for shower",
+          "Common Toilet: no room for basin"
+        ]
+      }
+    ]
+  },
+  "1. 30x40 east, 2BHK, Vastu moderate, 1 car | seed 20268020": {
+    "errors": [],
+    "warnings": [],
+    "stats": {
+      "sampled": 400,
+      "valid": 4
+    },
+    "layouts": [
+      {
+        "id": "L1",
+        "signature": "living:0.375,10.375,11.125,12.25|master:0.375,22.625,11.125,12|dining:11.5,10.375,8,13.799999999999999|toilet-master:11.5,25.375,8,9.25|toilet-common:19.5,10.375,8.5,5.5625|kitchen:19.5,15.9375,10.125,8.5625|bed2:19.5,24.5,10.125,10.125",
+        "total": 71.96334211151273,
+        "builtUp": 750,
+        "carpet": 621.7953125,
+        "openings": 16,
+        "furniture": 13,
+        "missingFurniture": 2,
+        "warnings": [
+          "Common Toilet: does not meet \"Toilet in NW or W, never NE\"",
+          "Kitchen: does not meet \"Kitchen in SE (NW fallback)\"",
+          "Master Bedroom: no room for wardrobe",
+          "Bedroom: no room for wardrobe"
+        ]
+      },
+      {
+        "id": "L2",
+        "signature": "bed2:0.375,10.375,10.625,10.3125|living:11,10.375,12.6875,10.3125|toilet-common:23.6875,10.375,5.9375,8.5|kitchen:0.375,20.6875,8.125,7|toilet-master:0.375,27.6875,8.125,6.9375|master:8.5,20.6875,12.8125,13.9375|dining:21.3125,20.6875,8.3125,13.799999999999999",
+        "total": 58.93808555033869,
+        "builtUp": 750,
+        "carpet": 629.528125,
+        "openings": 17,
+        "furniture": 12,
+        "missingFurniture": 4,
+        "warnings": [
+          "Common Toilet: does not meet \"Toilet in NW or W, never NE\"",
+          "Kitchen: does not meet \"Kitchen in SE (NW fallback)\"",
+          "Attached Toilet: does not meet \"Toilet in NW or W, never NE\"",
+          "Master Bedroom: does not meet \"Master bedroom in SW\"",
+          "Living: no room for tv unit",
+          "Bedroom: no room for wardrobe",
+          "Kitchen: no room for fridge",
+          "Attached Toilet: no room for shower"
+        ]
+      },
+      {
+        "id": "L3",
+        "signature": "living:0.375,10.375,10.1875,15.875|toilet-common:0.375,26.25,8.5,7.5|master:10.5625,10.375,11,13.6875|bed2:10.5625,24.0625,11,10.5625|dining:21.5625,10.375,8.0625,10.375|toilet-master:21.5625,20.75,8.0625,6.5|kitchen:21.5625,27.25,8.0625,7.375",
+        "total": 49.236620249655246,
+        "builtUp": 750,
+        "carpet": 620.265625,
+        "openings": 16,
+        "furniture": 12,
+        "missingFurniture": 4,
+        "warnings": [
+          "Common Toilet: does not meet \"Toilet in NW or W, never NE\"",
+          "Master Bedroom: does not meet \"Master bedroom in SW\"",
+          "Master Bedroom: no room for side table",
+          "Bedroom: no room for wardrobe",
+          "Kitchen: no room for platform",
+          "Attached Toilet: no room for shower"
+        ]
+      }
+    ]
+  },
+  "2. 30x50 north, 3BHK, puja, elderly ground-floor bedroom | seed 20260101": {
+    "errors": [],
+    "warnings": [],
+    "stats": {
+      "sampled": 400,
+      "valid": 3
+    },
+    "layouts": [
+      {
+        "id": "L1",
+        "signature": "dining:0.375,10.375,10.75,8.875|bed3:0.375,19.25,10.75,11.0625|living:11.125,10.375,10.1875,18.4|toilet-common:21.3125,10.375,8.3125,7.5|kitchen:21.3125,18.125,8.3125,7.6875|puja:21.3125,25.8125,5.75,4.5|bed2:0.375,30.3125,10.375,14.3125|master:10.75,30.3125,11.25,14.3125|toilet-master:22,30.3125,7.625,10",
+        "total": 60.87992965774046,
+        "builtUp": 1050,
+        "carpet": 853.63203125,
+        "openings": 19,
+        "furniture": 16,
+        "missingFurniture": 3,
+        "warnings": [
+          "Kitchen: does not meet \"Kitchen in SE (NW fallback)\"",
+          "Puja: does not meet \"Puja in NE\"",
+          "Master Bedroom: does not meet \"Master bedroom in SW\"",
+          "Attached Toilet: does not meet \"Toilet in NW or W, never NE\"",
+          "Puja: does not meet \"Puja not adjoining a toilet\"",
+          "Living: no room for tv unit",
+          "Bedroom: no room for wardrobe",
+          "Kitchen: no room for platform"
+        ]
+      },
+      {
+        "id": "L2",
+        "signature": "kitchen:0.375,10.375,8.375,10.1875|puja:0.375,20.5625,5.75,4.1875|toilet-master:0.375,24.75,8.375,6.875|living:8.75,10.375,10.5,18.4|toilet-common:19.25,10.375,8.5,7.5|bed2:19.25,18.0625,10.375,13.5625|master:0.375,31.625,11,13|dining:11.375,31.625,8.1875,13|bed3:19.5625,31.625,10.0625,13",
+        "total": 54.13204727878642,
+        "builtUp": 1050,
+        "carpet": 857.26875,
+        "openings": 19,
+        "furniture": 15,
+        "missingFurniture": 4,
+        "warnings": [
+          "Kitchen: does not meet \"Kitchen in SE (NW fallback)\"",
+          "Attached Toilet: does not meet \"Toilet in NW or W, never NE\"",
+          "Master Bedroom: does not meet \"Master bedroom in SW\"",
+          "Puja: does not meet \"Puja not adjoining a toilet\"",
+          "Master Bedroom: no room for wardrobe",
+          "Bedroom: no room for wardrobe",
+          "Kitchen: no room for fridge",
+          "Attached Toilet: no room for shower"
+        ]
+      },
+      {
+        "id": "L3",
+        "signature": "living:0.375,10.375,13.875,10|toilet-common:14.25,10.375,6.75,8.5|kitchen:21,10.375,8.625,10|master:0.375,20.375,12.125,11.9375|puja:12.5,20.375,5.75,5.75|bed3:18.25,20.375,11.375,11.9375|toilet-master:0.375,32.3125,8.5,10|dining:9.875,32.3125,8.375,12.3125|bed2:18.25,32.3125,11.375,12.3125",
+        "total": 53.3433309931272,
+        "builtUp": 1050,
+        "carpet": 837.375,
+        "openings": 19,
+        "furniture": 14,
+        "missingFurniture": 5,
+        "warnings": [
+          "Master Bedroom: does not meet \"Master bedroom in SW\"",
+          "Attached Toilet: does not meet \"Toilet in NW or W, never NE\"",
+          "Master Bedroom: no room for wardrobe",
+          "Living: no room for tv unit",
+          "Bedroom: no room for wardrobe",
+          "Kitchen: no room for fridge"
+        ]
+      }
+    ]
+  },
+  "2. 30x50 north, 3BHK, puja, elderly ground-floor bedroom | seed 20268020": {
+    "errors": [],
+    "warnings": [],
+    "stats": {
+      "sampled": 400,
+      "valid": 4
+    },
+    "layouts": [
+      {
+        "id": "L1",
+        "signature": "living:0.375,10.375,17.6875,10.875|dining:0.375,21.25,13.799999999999999,9|toilet-common:0.375,30.25,7.5625,5.9375|kitchen:0.375,36.1875,7.5625,8.4375|bed2:7.9375,30.25,10.125,14.374999999999998|bed3:18.0625,10.375,11.5625,10.0625|puja:18.0625,20.4375,5.75,4.5625|master:18.0625,25,11.5625,12.6875|toilet-master:18.0625,37.6875,9.5625,6.9375",
+        "total": 60.4801103726885,
+        "builtUp": 1050,
+        "carpet": 840.525,
+        "openings": 20,
+        "furniture": 14,
+        "missingFurniture": 5,
+        "warnings": [
+          "Common Toilet: does not meet \"Toilet in NW or W, never NE\"",
+          "Puja: does not meet \"Puja in NE\"",
+          "Attached Toilet: does not meet \"Toilet in NW or W, never NE\"",
+          "Master Bedroom: no room for side table",
+          "Bedroom: no room for wardrobe",
+          "Kitchen: no room for platform",
+          "Attached Toilet: no room for shower"
+        ]
+      },
+      {
+        "id": "L2",
+        "signature": "living:0.375,10.375,14.6875,10.4375|kitchen:15.0625,10.375,9,10.4375|toilet-common:24.0625,10.375,5.5625,8.5|bed3:0.375,20.8125,11.9375,11.0625|puja:12.3125,20.8125,4.5,5.75|master:16.8125,20.8125,12.8125,11.0625|dining:0.375,31.875,10.75,9.75|bed2:11.125,31.875,10.6875,12.75|toilet-master:21.8125,31.875,7.8125,10",
+        "total": 58.24114852713274,
+        "builtUp": 1050,
+        "carpet": 829.98046875,
+        "openings": 18,
+        "furniture": 14,
+        "missingFurniture": 5,
+        "warnings": [
+          "Master Bedroom: does not meet \"Master bedroom in SW\"",
+          "Attached Toilet: does not meet \"Toilet in NW or W, never NE\"",
+          "Master Bedroom: no room for wardrobe",
+          "Master Bedroom: no room for side table",
+          "Living: no room for tv unit",
+          "Bedroom: no room for wardrobe"
+        ]
+      },
+      {
+        "id": "L3",
+        "signature": "living:0.375,10.375,10,13.125|master:10.375,10.375,11.0625,13.125|toilet-master:21.4375,10.375,8.1875,10|toilet-common:0.375,23.5,7.5,8.5|puja:9.75,23.5,5.75,5.75|bed3:16.5625,23.5,13.0625,10.5|bed2:0.375,34,11.1875,10.625|kitchen:11.5625,34,7.6875,10.625|dining:19.25,34,10.375,10.625",
+        "total": 62.4170267485485,
+        "builtUp": 1050,
+        "carpet": 815.8359375,
+        "openings": 20,
+        "furniture": 13,
+        "missingFurniture": 6,
+        "warnings": [
+          "Master Bedroom: does not meet \"Master bedroom in SW\"",
+          "Common Toilet: does not meet \"Toilet in NW or W, never NE\"",
+          "Puja: does not meet \"Puja in NE\"",
+          "Kitchen: does not meet \"Kitchen in SE (NW fallback)\"",
+          "Master Bedroom: no room for wardrobe",
+          "Master Bedroom: no room for side table",
+          "Living: no room for tv unit",
+          "Bedroom: no room for wardrobe",
+          "Kitchen: no room for fridge",
+          "Attached Toilet: no room for shower"
+        ]
+      }
+    ]
+  },
+  "3. 20x45 west, 2BHK, no Vastu, 2 two-wheelers | seed 20260101": {
+    "errors": [],
+    "warnings": [],
+    "stats": {
+      "sampled": 400,
+      "valid": 3
+    },
+    "layouts": [
+      {
+        "id": "L1",
+        "signature": "toilet-common:0.375,10.375,8.5,5.6875|kitchen:0.375,16.0625,8.5625,7|living:8.9375,10.375,10.6875,12.6875|bed2:0.375,23.0625,10.3125,10.1875|dining:10.6875,23.0625,8.9375,10.1875|master:0.375,33.25,12.375,11.375|toilet-master:12.75,33.25,6.875,10",
+        "total": 58.480334390517854,
+        "builtUp": 700,
+        "carpet": 582.77734375,
+        "openings": 16,
+        "furniture": 13,
+        "missingFurniture": 3,
+        "warnings": [
+          "Master Bedroom: no room for wardrobe",
+          "Bedroom: no room for wardrobe",
+          "Kitchen: no room for platform"
+        ]
+      },
+      {
+        "id": "L2",
+        "signature": "living:0.375,10.375,12.375,10|toilet-common:12.75,10.375,6.875,8.5|dining:0.375,20.375,8.75,10.4375|bed2:9.125,20.375,10.5,10.4375|master:0.375,30.8125,11.25,13.8125|toilet-master:11.625,30.8125,8,6.6875|kitchen:11.625,37.5,8,7.125",
+        "total": 61.796364294389946,
+        "builtUp": 700,
+        "carpet": 581.3359375,
+        "openings": 18,
+        "furniture": 11,
+        "missingFurniture": 5,
+        "warnings": [
+          "Master Bedroom: no room for wardrobe",
+          "Living: no room for tv unit",
+          "Bedroom: no room for wardrobe",
+          "Kitchen: no room for platform",
+          "Attached Toilet: no room for shower"
+        ]
+      },
+      {
+        "id": "L3",
+        "signature": "living:0.375,10.375,12.9375,10.6875|toilet-common:13.3125,10.375,6.3125,8.5|master:0.375,21.0625,11.1875,13.5625|kitchen:11.5625,21.0625,8.0625,7|toilet-master:11.5625,28.0625,8.0625,6.5625|bed2:0.375,34.625,10.5625,10|dining:10.9375,34.625,8.6875,10",
+        "total": 53.332829971104076,
+        "builtUp": 700,
+        "carpet": 578.203125,
+        "openings": 18,
+        "furniture": 12,
+        "missingFurniture": 4,
+        "warnings": [
+          "Living: no room for tv unit",
+          "Bedroom: no room for wardrobe",
+          "Kitchen: no room for platform",
+          "Attached Toilet: no room for shower"
+        ]
+      }
+    ]
+  },
+  "3. 20x45 west, 2BHK, no Vastu, 2 two-wheelers | seed 20268020": {
+    "errors": [],
+    "warnings": [],
+    "stats": {
+      "sampled": 400,
+      "valid": 6
+    },
+    "layouts": [
+      {
+        "id": "L1",
+        "signature": "toilet-common:0.375,10.375,8.1875,5.6875|kitchen:0.375,16.0625,8.1875,7|living:8.5625,10.375,11.0625,12.6875|dining:0.375,23.0625,8.375,10.0625|bed2:8.75,23.0625,10.875,10.0625|master:0.375,33.125,12.5,11.5|toilet-master:12.875,33.125,6.75,10",
+        "total": 73.89412030651525,
+        "builtUp": 700,
+        "carpet": 582.61328125,
+        "openings": 16,
+        "furniture": 11,
+        "missingFurniture": 4,
+        "warnings": [
+          "Master Bedroom: no room for wardrobe",
+          "Bedroom: no room for wardrobe",
+          "Kitchen: no room for platform",
+          "Common Toilet: no room for basin"
+        ]
+      },
+      {
+        "id": "L2",
+        "signature": "toilet-common:0.375,10.375,6.625,8.5|living:7,10.375,12.625,10|toilet-master:0.375,20.375,8.1875,6.6875|kitchen:0.375,27.0625,8.1875,7.5|master:8.5625,20.375,11.0625,14.1875|dining:0.375,34.5625,9.25,10.0625|bed2:9.625,34.5625,10,10.0625",
+        "total": 66.1408018599704,
+        "builtUp": 700,
+        "carpet": 581.640625,
+        "openings": 17,
+        "furniture": 12,
+        "missingFurniture": 4,
+        "warnings": [
+          "Living: no room for tv unit",
+          "Bedroom: no room for wardrobe",
+          "Kitchen: no room for platform",
+          "Attached Toilet: no room for shower"
+        ]
+      },
+      {
+        "id": "L3",
+        "signature": "kitchen:0.375,10.375,7.25,10.25|living:7.625,10.375,12,10.25|master:0.375,20.625,11,12.9375|toilet-common:11.375,20.625,8.25,6.1875|toilet-master:11.375,26.8125,8.25,6.75|dining:0.375,33.5625,9,11.0625|bed2:9.375,33.5625,10.25,11.0625",
+        "total": 62.850659192362045,
+        "builtUp": 700,
+        "carpet": 590.7109375,
+        "openings": 17,
+        "furniture": 12,
+        "missingFurniture": 4,
+        "warnings": [
+          "Living: no room for tv unit",
+          "Bedroom: no room for wardrobe",
+          "Kitchen: no room for fridge",
+          "Attached Toilet: no room for shower"
+        ]
+      }
+    ]
+  },
+  "4. 40x60 corner south, 4BHK + study + guest, strict Vastu | seed 20260101": {
+    "errors": [
+      "No valid layout found for these inputs. Try relaxing Vastu to Moderate, or change room choices."
+    ],
+    "warnings": [],
+    "stats": {
+      "sampled": 400,
+      "valid": 0
+    },
+    "layouts": []
+  },
+  "4. 40x60 corner south, 4BHK + study + guest, strict Vastu | seed 20268020": {
+    "errors": [
+      "No valid layout found for these inputs. Try relaxing Vastu to Moderate, or change room choices."
+    ],
+    "warnings": [],
+    "stats": {
+      "sampled": 400,
+      "valid": 0
+    },
+    "layouts": []
+  }
+}
